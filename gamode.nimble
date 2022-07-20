@@ -11,3 +11,4 @@ bin           = @["gamode"]
 # Dependencies
 
 requires "nim >= 1.6.6"
+requires "winim"

@@ -43,3 +43,7 @@ when isMainModule:
     # This function only affects the layout for the current process or thread.
     # let s = ActivateKeyboardLayout(k, 8)
     # echo s
+  let winKeys = HKEY_CURRENT_USER.openSubKey("Software\\Microsoft\\Windows\\CurrentVersion\\Policies\\Explorer", true)
+  let noWinKeys = winKeys.createSubKey("NoWinKeys", true)
+  noWinKeys.setValue(1'i32)
+  winKeys.close()

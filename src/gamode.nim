@@ -44,6 +44,6 @@ when isMainModule:
     # let s = ActivateKeyboardLayout(k, 8)
     # echo s
   let winKeys = HKEY_CURRENT_USER.openSubKey("Software\\Microsoft\\Windows\\CurrentVersion\\Policies\\Explorer", true)
-  let noWinKeys = winKeys.createSubKey("NoWinKeys", true)
-  noWinKeys.setValue(1'i32)
+  # let noWinKeys = winKeys.createSubKey("NoWinKeys", true)
+  winKeys.setValue("NoWinKeys", 1'i32)
   winKeys.close()

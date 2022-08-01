@@ -2,12 +2,11 @@ import common
 import winim/inc/winsvc
 import winim/inc/winbase
 import winim/inc/winerror
-
+import std/[strutils]
 # https://docs.microsoft.com/en-us/windows/win32/services/stopping-a-service
 
 proc stopDependentServices(schSCManager: SC_HANDLE;
     schService: SC_HANDLE): bool =
-  var i: DWORD
   var dwBytesNeeded: DWORD
   var dwCount: DWORD
 
@@ -24,9 +23,11 @@ proc stopDependentServices(schSCManager: SC_HANDLE;
         lpDependencies, 0, dwBytesNeeded.addr, dwCount.addr) == TRUE:
     # If the Enum call succeeds, then there are no dependent
     # services, so do nothing.
+    echo "no deps"
     return true
   else:
     if GetLastError() != ERROR_MORE_DATA:
+      echo "EnumDependentServices error"
       return false # Unexpected error
 
       # Allocate a buffer for the dependencies.
@@ -86,102 +87,121 @@ proc stopDependentServices(schSCManager: SC_HANDLE;
 
   return true
 
-var ssp: SERVICE_STATUS_PROCESS
-var dwStartTime = GetTickCount()
-var dwBytesNeeded: DWORD
-var dwTimeout: DWORD = 30000 # 30-second time-out
-var dwWaitTime: DWORD
+proc stopService*(szSvcName: string) =
+  var ssp: SERVICE_STATUS_PROCESS
+  var dwStartTime = GetTickCount()
+  var dwBytesNeeded: DWORD
+  var dwTimeout: DWORD = 30000 # 30-second time-out
+  var dwWaitTime: DWORD
 
-# Get a handle to the SCM database.
-var szSvcName: LPCWSTR
-let schSCManager = OpenSCManager(
-    nil, # local computer
-  nil,   # ServicesActive database
-  SC_MANAGER_ALL_ACCESS) # full access rights
-let schService = OpenService(
-    schSCManager, # SCM database
-  szSvcName,      # name of service
-  SERVICE_STOP or
-  SERVICE_QUERY_STATUS or
-  SERVICE_ENUMERATE_DEPENDENTS)
+  # Get a handle to the SCM database.
+  # var szSvcName: LPCWSTR
+  let schSCManager = OpenSCManager(
+      nil,                 # local computer
+    nil,                   # ServicesActive database
+    SC_MANAGER_ALL_ACCESS) # full access rights
+  let schService = OpenService(
+      schSCManager, # SCM database
+    szSvcName,      # name of service
+    SERVICE_STOP or
+    SERVICE_QUERY_STATUS or
+    SERVICE_ENUMERATE_DEPENDENTS)
+  # if schService == nil:
+  #   echo "OpenService failed $#" % [$GetLastError()]
+  #   CloseServiceHandle(schSCManager);
+  #   return
+  proc cleanUp() =
+    CloseServiceHandle(schService)
+    CloseServiceHandle(schSCManager)
 
-proc cleanUp() =
-  CloseServiceHandle(schService)
-  CloseServiceHandle(schSCManager)
-#  Make sure the service is not already stopped.
-
-if not QueryServiceStatusEx(
-    schService,
-    SC_STATUS_PROCESS_INFO,
-    cast[LPBYTE](ssp.addr),
-    (DWORD)sizeof(SERVICE_STATUS_PROCESS),
-    dwBytesNeeded.addr) == TRUE:
-    discard
-    # return
-
-  # If a stop is pending, wait for it.
-
-while ssp.dwCurrentState == SERVICE_STOP_PENDING:
-
-  # Do not wait longer than the wait hint. A good interval is
-  # one-tenth of the wait hint but not less than 1 second
-  # and not more than 10 seconds.
-
-  dwWaitTime = ssp.dwWaitHint div 10
-
-  if dwWaitTime < 1000:
-    dwWaitTime = 1000
-  elif dwWaitTime > 10000:
-    dwWaitTime = 10000
-
-  Sleep(dwWaitTime)
-
+  #  Make sure the service is not already stopped.
   if not QueryServiceStatusEx(
       schService,
       SC_STATUS_PROCESS_INFO,
       cast[LPBYTE](ssp.addr),
       (DWORD)sizeof(SERVICE_STATUS_PROCESS),
       dwBytesNeeded.addr) == TRUE:
-  # QueryServiceStatusEx failed
-    cleanUp()
-
+      echo "QueryServiceStatusEx failed $#" % [$GetLastError()]
+      cleanUp()
+      return
   if ssp.dwCurrentState == SERVICE_STOPPED:
-  # Service stopped successfully.
     cleanUp()
+    return
 
-  if GetTickCount() - dwStartTime > dwTimeout:
-  # Service stop timed out.
-    cleanUp()
-  # If the service is running, dependencies must be stopped first.
+  # If a stop is pending, wait for it.
 
-#     StopDependentServices();
+  while ssp.dwCurrentState == SERVICE_STOP_PENDING:
 
-# Send a stop code to the service.
+    # Do not wait longer than the wait hint. A good interval is
+    # one-tenth of the wait hint but not less than 1 second
+    # and not more than 10 seconds.
 
-if not ControlService(
+    dwWaitTime = ssp.dwWaitHint div 10
+
+    if dwWaitTime < 1000:
+      dwWaitTime = 1000
+    elif dwWaitTime > 10000:
+      dwWaitTime = 10000
+
+    Sleep(dwWaitTime)
+    echo "SERVICE_STOP_PENDING"
+    if not QueryServiceStatusEx(
         schService,
-        SERVICE_CONTROL_STOP,
-        cast[LPSERVICE_STATUS](ssp.addr)) == TRUE:
-# ControlService failed
-  cleanUp()
-# Wait for the service to stop.
+        SC_STATUS_PROCESS_INFO,
+        cast[LPBYTE](ssp.addr),
+        (DWORD)sizeof(SERVICE_STATUS_PROCESS),
+        dwBytesNeeded.addr) == TRUE:
+    # QueryServiceStatusEx failed
+      cleanUp()
+      return
 
-while ssp.dwCurrentState != SERVICE_STOPPED:
-  Sleep(ssp.dwWaitHint)
-  if not QueryServiceStatusEx(
+    if ssp.dwCurrentState == SERVICE_STOPPED:
+    # Service stopped successfully.
+      cleanUp()
+      return
+
+    if GetTickCount() - dwStartTime > dwTimeout:
+    # Service stop timed out.
+      cleanUp()
+      return
+
+  # If the service is running, dependencies must be stopped first.
+  discard stopDependentServices(schSCManager, schService)
+
+  # Send a stop code to the service.
+
+  if not ControlService(
           schService,
-          SC_STATUS_PROCESS_INFO,
-          cast[LPBYTE](ssp.addr),
-          (DWORD)sizeof(SERVICE_STATUS_PROCESS),
-          dwBytesNeeded.addr) == TRUE:
-  # QueryServiceStatusEx failed
+          SERVICE_CONTROL_STOP,
+          cast[LPSERVICE_STATUS](ssp.addr)) == TRUE:
+    echo "ControlService  failed $#" % [$GetLastError()]
     cleanUp()
+    return
+  # Wait for the service to stop.
 
-  if ssp.dwCurrentState == SERVICE_STOPPED:
-    break;
+  while ssp.dwCurrentState != SERVICE_STOPPED:
+    Sleep(ssp.dwWaitHint)
+    echo "not stop"
+    if not QueryServiceStatusEx(
+            schService,
+            SC_STATUS_PROCESS_INFO,
+            cast[LPBYTE](ssp.addr),
+            (DWORD)sizeof(SERVICE_STATUS_PROCESS),
+            dwBytesNeeded.addr) == TRUE:
 
-  if GetTickCount() - dwStartTime > dwTimeout:
-    # Wait timed out
-    cleanUp()
+      cleanUp()
+      return
 
-# service stopped successfully
+    if ssp.dwCurrentState == SERVICE_STOPPED:
+      break;
+
+    if GetTickCount() - dwStartTime > dwTimeout:
+      # Wait timed out
+      cleanUp()
+      return
+
+  # service stopped successfully
+
+when isMainModule:
+  # powershell: Get-Service | Where-Object {$_.Name -like "*wuauserv*"}
+  stopService("wuauserv")

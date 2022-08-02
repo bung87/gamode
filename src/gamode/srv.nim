@@ -3,7 +3,9 @@ import winim/inc/winsvc
 import winim/inc/winbase
 import winim/inc/winerror
 import std/[strutils]
+
 # https://docs.microsoft.com/en-us/windows/win32/services/stopping-a-service
+# https://docs.microsoft.com/en-us/windows/win32/api/winsvc/nf-winsvc-controlservice
 
 proc stopDependentServices(schSCManager: SC_HANDLE;
     schService: SC_HANDLE): bool =
@@ -100,16 +102,20 @@ proc stopService*(szSvcName: string) =
       nil,                 # local computer
     nil,                   # ServicesActive database
     SC_MANAGER_ALL_ACCESS) # full access rights
+  if schSCManager == 0:
+    echo "OpenSCManager failed $#" % [$GetLastError()]
+    # ERROR_ACCESS_DENIED
+    return
   let schService = OpenService(
       schSCManager, # SCM database
     szSvcName,      # name of service
     SERVICE_STOP or
     SERVICE_QUERY_STATUS or
     SERVICE_ENUMERATE_DEPENDENTS)
-  # if schService == nil:
-  #   echo "OpenService failed $#" % [$GetLastError()]
-  #   CloseServiceHandle(schSCManager);
-  #   return
+  if schService == 0:
+    echo "OpenService failed $#" % [$GetLastError()]
+    CloseServiceHandle(schSCManager);
+    return
   proc cleanUp() =
     CloseServiceHandle(schService)
     CloseServiceHandle(schSCManager)
@@ -169,7 +175,7 @@ proc stopService*(szSvcName: string) =
   discard stopDependentServices(schSCManager, schService)
 
   # Send a stop code to the service.
-
+  echo "dwCurrentState before control", $ssp.dwCurrentState
   if not ControlService(
           schService,
           SERVICE_CONTROL_STOP,
@@ -181,7 +187,6 @@ proc stopService*(szSvcName: string) =
 
   while ssp.dwCurrentState != SERVICE_STOPPED:
     Sleep(ssp.dwWaitHint)
-    echo "not stop"
     if not QueryServiceStatusEx(
             schService,
             SC_STATUS_PROCESS_INFO,
@@ -191,12 +196,14 @@ proc stopService*(szSvcName: string) =
 
       cleanUp()
       return
-
+    # echo "dwCurrentState after control", $ssp.dwCurrentState
     if ssp.dwCurrentState == SERVICE_STOPPED:
+      echo "stopped"
       break;
 
     if GetTickCount() - dwStartTime > dwTimeout:
       # Wait timed out
+      echo "wait timeout"
       cleanUp()
       return
 

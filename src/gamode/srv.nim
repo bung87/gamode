@@ -3,6 +3,7 @@ import winim/inc/winsvc
 import winim/inc/winbase
 import winim/inc/winerror
 import std/[strutils]
+import priv
 
 # https://docs.microsoft.com/en-us/windows/win32/services/stopping-a-service
 # https://docs.microsoft.com/en-us/windows/win32/api/winsvc/nf-winsvc-controlservice
@@ -210,5 +211,6 @@ proc stopService*(szSvcName: string) =
   # service stopped successfully
 
 when isMainModule:
+  adjustPrivilege()
   # powershell: Get-Service | Where-Object {$_.Name -like "*wuauserv*"}
   stopService("wuauserv")

@@ -1,4 +1,4 @@
-import gamode/[common, registry, registrydef]
+import gamode/[common, registry, registrydef, priv, srv]
 import winlean
 import winim/inc/winuser
 import winim/inc/windef
@@ -7,7 +7,7 @@ import std/sugar
 
 const AutoGameModeEnabled = "AutoGameModeEnabled"
 const AllowAutoGameMode = "AllowAutoGameMode"
-const layoutEN = "United Kingdom"
+# const layoutEN = "United Kingdom"
 const layoutUS = "US"
 
 proc getLayoutName(kbdLayout: HKL): string =
@@ -20,6 +20,7 @@ proc getLayoutName(kbdLayout: HKL): string =
 
 
 when isMainModule:
+  adjustPrivilege()
   let gameBar = HKEY_CURRENT_USER.openSubKey("Software\\Microsoft\\GameBar", true)
   gameBar.setValue(AutoGameModeEnabled, 1'i32)
   gameBar.setValue(AllowAutoGameMode, 1'i32)
@@ -30,20 +31,29 @@ when isMainModule:
   stickyKeys.close()
   let dbcsEnabled = GetSystemMetrics(SM_DBCSENABLED)
   if dbcsEnabled != 0:
-    let kbdLayout = GetKeyboardLayout(0)
     var lst: array[100, HKL]
     let count = GetKeyboardLayoutList(100, lst[0].addr)
+    var usIndex = -1
     let layouts = collect(newSeq):
       for i in countup(0, count - 1):
-        getLayoutName(lst[i])
-    # if layoutEN notin layouts and layoutUS notin layouts:
-    let k = LoadKeyboardLayout("US", 8)
-    # This function only affects the layout for the current process or thread.
-    # let s = ActivateKeyboardLayout(k, 8)
-    # echo s
+        let name = getLayoutName(lst[i])
+        if name == "US":
+          usIndex = i
+        name
+    var kbdLayout: HKL
+    if layoutUS notin layouts:
+      kbdLayout = LoadKeyboardLayout("US", 8)
+    else:
+      if usIndex != -1:
+        echo usIndex
+        kbdLayout = lst[usIndex]
+    let s = ActivateKeyboardLayout(kbdLayout, 8)
   let winKeys = HKEY_CURRENT_USER.openSubKey(
       "Software\\Microsoft\\Windows\\CurrentVersion\\Policies\\Explorer", true)
-  # let noWinKeys = winKeys.createSubKey("NoWinKeys", true)
+  let noWinKeys = winKeys.createSubKey("NoWinKeys", true)
   winKeys.setValue("NoWinKeys", 1'i32)
   winKeys.close()
+  adjustPrivilege()
+  stopService("wuauserv")
+
 

@@ -151,7 +151,6 @@ proc stopService*(szSvcName: string) =
       dwWaitTime = 10000
 
     Sleep(dwWaitTime)
-    echo "SERVICE_STOP_PENDING"
     if not QueryServiceStatusEx(
         schService,
         SC_STATUS_PROCESS_INFO,
@@ -199,12 +198,10 @@ proc stopService*(szSvcName: string) =
       return
     # echo "dwCurrentState after control", $ssp.dwCurrentState
     if ssp.dwCurrentState == SERVICE_STOPPED:
-      echo "stopped"
-      break;
+      break
 
     if GetTickCount() - dwStartTime > dwTimeout:
       # Wait timed out
-      echo "wait timeout"
       cleanUp()
       return
 

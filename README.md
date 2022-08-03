@@ -4,4 +4,4 @@
 - [x] disable <kbd>win</kbd> hotkeys  
 - [ ] load us keyboard layout for CJK users  
 - [ ] disable File and Printer Sharing  
-- [ ] disable windows auto update  
+- [x] disable windows auto update  

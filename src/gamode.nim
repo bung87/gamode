@@ -38,6 +38,11 @@ when isMainModule:
   let dbcsEnabled = GetSystemMetrics(SM_DBCSENABLED)
   if dbcsEnabled != 0:
     echo LoadKeyboardLayout(layoutUS, KLF_ACTIVATE)
+    # let preload = HKEY_USERS.openSubKey(".DEFAULT\\Keyboard Layout\\Preload", true)
+    # preload.setValue("1", layoutUS)
+    # preload.close
+    # for k in preload.getSubKeyNames():
+    #   echo k
     # var lst: array[100, HKL]
     # let count = GetKeyboardLayoutList(100, lst[0].addr)
     # var usIndex = -1

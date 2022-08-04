@@ -175,7 +175,7 @@ proc stopService*(szSvcName: string) =
   discard stopDependentServices(schSCManager, schService)
 
   # Send a stop code to the service.
-  echo "dwCurrentState before control", $ssp.dwCurrentState
+
   if not ControlService(
           schService,
           SERVICE_CONTROL_STOP,

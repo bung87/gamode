@@ -1,4 +1,4 @@
-import gamode/[common, registry, registrydef, priv, srv]
+import gamode/[common, registry, registrydef, priv, srv, mouse, power]
 import winlean
 import winim/inc/winuser
 import winim/inc/windef
@@ -69,6 +69,13 @@ when isMainModule:
   let noWinKeys = winKeys.createSubKey("NoWinKeys", true)
   winKeys.setValue("NoWinKeys", 1'i32)
   winKeys.close()
+  # disable windows auto update
   stopService("wuauserv")
+
+  # disable mouse enhance pointer precision
+  discard setMouseAcceleration(false)
+  # maximum performance power plan
+  var preserve: HKEY
+  PowerSetActiveScheme(preserve, MaximumPerformance.unsafeAddr)
 
 

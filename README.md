@@ -5,7 +5,8 @@
 - [ ] load us keyboard layout for CJK users  
 - [ ] disable File and Printer Sharing  
 - [x] disable windows auto update  
-
+- [x] disable mouse enhance pointer precision
+- [x] switch to maximum performance power plan
 
 ## Development  
 

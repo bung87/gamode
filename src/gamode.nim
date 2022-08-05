@@ -27,6 +27,7 @@ proc getLayoutName(kbdLayout: HKL): string =
 
 when isMainModule:
   adjustPrivilege()
+  # https://www.guru3d.com/news-story/windows-10-game-mode-can-impact-fps-negatively-with-stutters-and-freezes.html
   let gameBar = HKEY_CURRENT_USER.openSubKey("Software\\Microsoft\\GameBar", true)
   gameBar.setValue(AutoGameModeEnabled, 1'i32)
   gameBar.setValue(AllowAutoGameMode, 1'i32)

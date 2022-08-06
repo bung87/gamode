@@ -38,31 +38,25 @@ when isMainModule:
   stickyKeys.close()
   let dbcsEnabled = GetSystemMetrics(SM_DBCSENABLED)
   if dbcsEnabled != 0:
-    echo LoadKeyboardLayout(layoutUS, KLF_ACTIVATE)
-    # let preload = HKEY_USERS.openSubKey(".DEFAULT\\Keyboard Layout\\Preload", true)
-    # preload.setValue("1", layoutUS)
-    # preload.close
-    # for k in preload.getSubKeyNames():
-    #   echo k
-    # var lst: array[100, HKL]
-    # let count = GetKeyboardLayoutList(100, lst[0].addr)
-    # var usIndex = -1
-    # let layouts = collect(newSeq):
-    #   for i in countup(0, count - 1):
-    #     let name = getLayoutName(lst[i])
-    #     if name == layoutUS:
-    #       usIndex = i
-    #     name
-    # var kbdLayout: HKL
-    # if layoutUS notin layouts:
-    #   kbdLayout = LoadKeyboardLayout(layoutUS, KLF_ACTIVATE)
-    # else:
-    #   if usIndex != -1:
-    #     kbdLayout = lst[usIndex]
-    #     kbdLayout = LoadKeyboardLayout(layoutUS, KLF_ACTIVATE)
-    #     echo kbdLayout
-    #     echo toHex(kbdLayout, 8)
-    # let s = ActivateKeyboardLayout(kbdLayout, KLF_SETFORPROCESS)
+    var lst: array[100, HKL]
+    let count = GetKeyboardLayoutList(100, lst[0].addr)
+    var usIndex = -1
+    let layouts = collect(newSeq):
+      for i in countup(0, count - 1):
+        let name = getLayoutName(lst[i])
+        if name == layoutUS:
+          usIndex = i
+        name
+    var kbdLayout: HKL
+    if layoutUS notin layouts:
+      kbdLayout = LoadKeyboardLayout(layoutUS, KLF_ACTIVATE)
+    else:
+      if usIndex != -1:
+        kbdLayout = lst[usIndex]
+        kbdLayout = LoadKeyboardLayout(layoutUS, KLF_ACTIVATE)
+    let s = ActivateKeyboardLayout(kbdLayout, KLF_SETFORPROCESS)
+    var hWnd = GetForegroundWindow()
+    PostMessage(hWnd, WM_INPUTLANGCHANGEREQUEST, INPUTLANGCHANGE_FORWARD, HKL_NEXT);
 
   let winKeys = HKEY_CURRENT_USER.openSubKey(
       "Software\\Microsoft\\Windows\\CurrentVersion\\Policies\\Explorer", true)

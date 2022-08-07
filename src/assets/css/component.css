@@ -1,0 +1,171 @@
+/* Main component wrapper */
+
+.component {
+	position: relative;
+	z-index: 1;
+	width: 300px;
+	height: 500px;
+	margin: 0 auto;
+	display: flex;
+	align-items: center;
+    justify-content: center;
+}
+
+
+.button--listen {
+	pointer-events: none;
+}
+
+@-webkit-keyframes anim-ripple {
+	0% {
+		opacity: 0;
+		-webkit-transform: scale3d(3, 3, 1);
+		transform: scale3d(3, 3, 1);
+	}
+	50% {
+		opacity: 1;
+	}
+	100% {
+		opacity: 0;
+		-webkit-transform: scale3d(1, 1, 1);
+		transform: scale3d(1, 1, 1);
+	}
+}
+
+@keyframes anim-ripple {
+	0% {
+		opacity: 0;
+		-webkit-transform: scale3d(3, 3, 1);
+		transform: scale3d(3, 3, 1);
+	}
+	50% {
+		opacity: 1;
+	}
+	100% {
+		opacity: 0;
+		-webkit-transform: scale3d(1, 1, 1);
+		transform: scale3d(1, 1, 1);
+	}
+}
+
+.button--start .button__content--start,
+.button--listen .button__content--listen {
+	opacity: 1;
+	-webkit-transform: translate3d(0, 0, 0);
+	transform: translate3d(0, 0, 0);
+}
+
+
+.notes {
+	position: absolute;
+	z-index: -1;
+	bottom: 0;
+	left: 50%;
+	width: 100px;
+	height: 60px;
+	margin: 0 0 0 -50px;
+}
+
+.note {
+	font-size: 1em;
+	position: absolute;
+	left: 50%;
+	width: 10em;
+	margin: 0 0 0 -0.5em;
+	opacity: 0;
+	color: rgba(255, 255, 255, 0.75);
+}
+
+.note:nth-child(odd) {
+	color: rgba(0, 0, 0, 0.1);
+}
+
+.note:nth-child(4n) {
+	font-size: 2em;
+}
+
+.note:nth-child(6n) {
+	color: rgba(255, 255, 255, 0.3);
+}
+
+
+
+.example {
+	float: left;
+  }
+@-webkit-keyframes zoom {
+  0%   { -webkit-transform: scale(1); }
+	50%  { -webkit-transform: scale(0.8); }
+  100% { -webkit-transform: scale(1); }
+}
+@-moz-keyframes zoom {
+  0%   { -moz-transform: scale(1); }
+	50%  { -moz-transform: scale(0.8); }
+  100% { -moz-transform: scale(1); }
+}
+@-o-keyframes zoom {
+  0%   { -o-transform: scale(1); }
+	50%  { -o-transform: scale(0.8); }
+  100% { -o-transform: scale(1); }
+}
+@keyframes zoom {
+  0%   { transform: scale(1); }
+	50%  { transform: scale(0.8); }
+  100% { transform: scale(1); }
+}
+
+.button-wrap-2 {
+  width: 120px;
+  height: 120px;
+  /* margin: 20px auto;
+  display: inline-block; */
+  position: relative;
+ 
+}
+
+.circle {
+	display: flex;
+    align-items: center;
+    justify-content: center;
+	left:0;
+    /* Inner circle */
+    color: #fff;
+    width: 100px;
+    height: 100px; /* 20px smaller b/c of margin below */
+    margin: 10px;
+    background-color: #000;
+    border-radius: 60px;
+    
+    /* Overlays this circle on the .circle */
+    z-index: 2;
+    position: absolute;
+    
+    /* centers the text: adjust to desired size */
+    padding: 22px 10px; 
+    text-align: center;
+    
+    /* shadow */
+    -webkit-box-shadow: 0px 0px 7px 0px rgba(0, 0, 0, 0.5);
+    -moz-box-shadow:    0px 0px 7px 0px rgba(0, 0, 0, 0.5);
+    -o-box-shadow:      0px 0px 7px 0px rgba(0, 0, 0, 0.5);
+    box-shadow:         0px 0px 7px 0px rgba(0, 0, 0, 0.5);
+  }
+  
+  .outer-circle {
+    /** outer circle **/
+    width: 120px;
+    height: 120px;
+    border-radius: 60px;
+    background-color: green;
+    
+    /*** outer circle position: under */
+    z-index: 1;
+    position: absolute;
+  }
+  
+  .circle:hover + .outer-circle, .circle:active + .outer-circle {
+    -webkit-animation: zoom 1s ease-in 0s 1 both;
+    -mox-animation: zoom 1s ease-in 0s 1 both;
+    -o-animation: zoom 1s ease-in 0s 1 both;
+    animation: zoom 1s ease-in 0s 1 both;
+  }

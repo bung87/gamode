@@ -85,10 +85,11 @@
 				js: pre[0].toUpperCase() + pre.substr(1)
 			};
 		})();
-	
-	var support = {transitions : Modernizr.csstransitions},
+
+	var support = {transitions : true},
 		transEndEventNames = { 'WebkitTransition': 'webkitTransitionEnd', 'MozTransition': 'transitionend', 'OTransition': 'oTransitionEnd', 'msTransition': 'MSTransitionEnd', 'transition': 'transitionend' },
-		transEndEventName = transEndEventNames[ Modernizr.prefixed( 'transition' ) ],
+		
+		transEndEventName = transEndEventNames['transition'],
 		onEndTransition = function( el, callback, propTest ) {
 			var onEndCallbackFn = function( ev ) {
 				if( support.transitions ) {
@@ -133,7 +134,7 @@
 		isListening = false;
 
 	function init() {
-		particlesJS("body", particlesjsConfig);
+		// particlesJS("body", particlesjsConfig);
 		// create the music notes elements - the musical symbols that will animate/move towards the listen button
 		createNotes();
 		// bind events
@@ -144,13 +145,6 @@
 	 * creates [totalNotes] note elements (the musical symbols that will animate/move towards the listen button)
 	 */
 	function createNotes() {
-// 		- [x] enable system builtin game mode  
-// - [x] disable <kbd>win</kbd> hotkeys  
-// - [x] load us keyboard layout for CJK users  
-// - [ ] disable File and Printer Sharing  
-// - [x] disable windows auto update  
-// - [x] disable mouse enhance pointer precision
-// - [x] switch to maximum performance power plan
 		var notesEl = document.createElement('div'), notesElContent = '';
 		notesEl.className = 'notes';
 		notesElContent += '<div class="note">'+'enable system builtin game mode'+'</div>';
@@ -175,13 +169,21 @@
 	 */
 	function initEvents() {
 		// click on the initial button
-		shzCtrl.addEventListener('click', listen);
+		shzCtrl.addEventListener('click', toggle);
 
 		// window resize: update window sizes and button offset
 		window.addEventListener('resize', throttle(function(ev) {
 			winsize = {width: window.innerWidth, height: window.innerHeight};
 			shzCtrlOffset = shzCtrl.getBoundingClientRect();
 		}, 10));
+	}
+
+	function toggle() {
+		if(!isListening){
+			listen();
+		} else {
+			stopListening();
+		}
 	}
 
 	/**
@@ -193,7 +195,7 @@
 		// toggle classes (button content/text changes)
 		classie.remove(shzCtrl, 'button--start');
 		classie.add(shzCtrl, 'button--listen');
-
+		window.api.start();
 		// animate the shape of the button (we are using Snap.svg for this)
 		// animatePath(shzPathEl, shzEl.getAttribute('data-path-listen'), 400, [0.8, -0.6, 0.2, 1], function() {
 			// ripples start...
@@ -214,6 +216,7 @@
 		classie.remove(shzCtrl, 'button--animate');
 		// music notes animation stops...
 		hideNotes();
+		window.api.restore();
 	}
 
 	/**

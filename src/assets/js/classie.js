@@ -13,9 +13,7 @@
 /*jshint browser: true, strict: true, undef: true, unused: true */
 /*global define: false, module: false */
 
-( function( window ) {
-
-'use strict';
+;( function( window ) {
 
 // class helper functions from bonzo https://github.com/ded/bonzo
 

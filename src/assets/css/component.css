@@ -11,11 +11,6 @@
     justify-content: center;
 }
 
-
-.button--listen {
-	pointer-events: none;
-}
-
 @-webkit-keyframes anim-ripple {
 	0% {
 		opacity: 0;
@@ -124,6 +119,8 @@
 }
 
 .circle {
+	cursor: pointer;
+	user-select: none;
 	display: flex;
     align-items: center;
     justify-content: center;

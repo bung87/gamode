@@ -16,48 +16,7 @@
 	 * some helper functions
 	 */
 	
-		// from http://stackoverflow.com/a/25273333
-	var bezier = function(x1, y1, x2, y2, epsilon) {
-			var curveX = function(t){
-				var v = 1 - t;
-				return 3 * v * v * t * x1 + 3 * v * t * t * x2 + t * t * t;
-			};
-			var curveY = function(t){
-				var v = 1 - t;
-				return 3 * v * v * t * y1 + 3 * v * t * t * y2 + t * t * t;
-			};
-			var derivativeCurveX = function(t){
-				var v = 1 - t;
-				return 3 * (2 * (t - 1) * t + v * v) * x1 + 3 * (- t * t * t + 2 * v * t) * x2;
-			};
-			return function(t){
-				var x = t, t0, t1, t2, x2, d2, i;
-				// First try a few iterations of Newton's method -- normally very fast.
-				for (t2 = x, i = 0; i < 8; i++){
-					x2 = curveX(t2) - x;
-					if (Math.abs(x2) < epsilon) return curveY(t2);
-					d2 = derivativeCurveX(t2);
-					if (Math.abs(d2) < 1e-6) break;
-					t2 = t2 - x2 / d2;
-				}
-
-				t0 = 0, t1 = 1, t2 = x;
-
-				if (t2 < t0) return curveY(t0);
-				if (t2 > t1) return curveY(t1);
-
-				// Fallback to the bisection method for reliability.
-				while (t0 < t1){
-					x2 = curveX(t2);
-					if (Math.abs(x2 - x) < epsilon) return curveY(t2);
-					if (x > x2) t0 = t2;
-					else t1 = t2;
-					t2 = (t1 - t0) * .5 + t0;
-				}
-				// Failure
-				return curveY(t2);
-			};
-		},
+	var
 		getRandomNumber = function(min, max) {
 			return Math.floor(Math.random() * (max - min + 1)) + min;
 		},
@@ -109,29 +68,21 @@
 		shzEl = document.querySelector('.component'),
 		// the initial button
 		shzCtrl = shzEl.querySelector('.button--start'),
-		// the svg element which contains the shape paths
-		// shzSVGEl = shzEl.querySelector('svg.morpher'),
-		// snapsvg instance
-		// snap = Snap(shzSVGEl),
-		// // the SVG path
-		// shzPathEl = snap.select('path'),
-		// total number of notes/symbols moving towards the listen button
-		totalNotes = 50,
 		// the notes elements
 		notes,
 		// the note´s speed factor relative to the distance from the note element to the button. 
 		// if notesSpeedFactor = 1, then the speed equals the distance (in ms)
 		notesSpeedFactor = 4.5,
-		// simulation time for listening (ms)
-		simulateTime = 6500,
 		// window sizes
 		winsize = {width: window.innerWidth, height: window.innerHeight},
 		// button offset
 		shzCtrlOffset = shzCtrl.getBoundingClientRect(),
 		// button sizes
 		shzCtrlSize = {width: shzCtrl.offsetWidth, height: shzCtrl.offsetHeight},
+		isAnimating = false,
 		// tells us if the listening animation is taking place
-		isListening = false;
+		isOptimizing = false;
+
 
 	function init() {
 		// particlesJS("body", particlesjsConfig);
@@ -152,11 +103,6 @@
 		notesElContent += '<div class="note">'+'disable windows auto update'+'</div>';
 		notesElContent += '<div class="note">'+'disable mouse enhance pointer precision'+'</div>';
 		notesElContent += '<div class="note">'+'switch to maximum performance power plan'+'</div>';
-		// for(var i = 0; i < totalNotes; ++i) {
-		// 	// we have 6 different types of symbols (icon--note1, icon--note2 ... icon--note6)
-		// 	var j = (i + 1) - 6 * Math.floor(i/6);
-		// 	notesElContent += '<div class="note icon icon--note' + j + '"></div>';
-		// }
 		notesEl.innerHTML = notesElContent;
 		shzEl.insertBefore(notesEl, shzEl.firstChild)
 
@@ -179,44 +125,48 @@
 	}
 
 	function toggle() {
-		if(!isListening){
-			listen();
+		if(!isOptimizing){
+			isAnimating = true;
+			showNotes();
+			optimize();
 		} else {
-			stopListening();
+			hideNotes();
+			restore();
 		}
+		isOptimizing = !isOptimizing
 	}
 
-	/**
-	 * transform the initial button into a circle shaped one that "listens" to the current song..
-	 */
-	function listen() {
-		isListening = true;
-		
+
+	function optimize() {
+
 		// toggle classes (button content/text changes)
 		classie.remove(shzCtrl, 'button--start');
 		classie.add(shzCtrl, 'button--listen');
-		window.api.start();
-		// animate the shape of the button (we are using Snap.svg for this)
-		// animatePath(shzPathEl, shzEl.getAttribute('data-path-listen'), 400, [0.8, -0.6, 0.2, 1], function() {
-			// ripples start...
-			classie.add(shzCtrl, 'button--animate');
-			// music notes animation starts...
-			showNotes();
-			// simulate the song detection
-			setTimeout(showPlayer, simulateTime);
-		// });
+		setTimeout(function(){
+			window.api.start();
+			setTimeout(function(){
+				isAnimating = false;
+				document.getElementsByClassName("circle")[0].textContent = "restore";
+			}, 2000);
+			hideNotes();
+		}, 0)
+		classie.add(shzCtrl, 'button--animate');
+
 	}
 
 	/**
 	 * stop the ripples and notes animations
 	 */
-	function stopListening() {
-		isListening = false;
+	function restore() {
 		// ripples stop...
 		classie.remove(shzCtrl, 'button--animate');
 		// music notes animation stops...
-		hideNotes();
-		window.api.restore();
+		
+		setTimeout(function(){
+			window.api.restore();
+			document.getElementsByClassName("circle")[0].textContent = "start optimize";
+		}, 0)
+		
 	}
 
 	/**
@@ -273,7 +223,7 @@
 	 */
 	function animateNote(note) {
 		setTimeout(function() {
-			if(!isListening) return;
+			if(!isAnimating ) return;
 			// the transition speed of each note will be proportional to the its distance to the button
 			// speed = notesSpeedFactor * distance
 			var noteSpeed = notesSpeedFactor * Math.sqrt(Math.pow(note.getAttribute('data-tx'),2) + Math.pow(note.getAttribute('data-ty'),2));
@@ -292,7 +242,7 @@
 				note.style.WebkitTransition = note.style.transition = 'none';
 				note.style.opacity = 0;
 
-				if(!isListening) return;
+				if(!isAnimating) return;
 
 				positionNote(note);
 				animateNote(note);
@@ -302,59 +252,6 @@
 		}, 60);
 	}
 
-	/**
-	 * shows the audio player
-	 */
-	function showPlayer() {
-		// stop the ripples and notes animations
-		stopListening();
-
-		// morph the listening button shape into the audio player shape
-		// we are setting a timeout so that there´s a small delay (it just looks nicer)
-		setTimeout(function() {
-			// animatePath(shzPathEl, shzEl.getAttribute('data-path-player'), 450, [0.7, 0, 0.3, 1], function() {
-				// show audio player
-				// classie.remove(playerEl, 'player--hidden');
-			// });
-			// hide button
-			document.getElementsByClassName("circle")[0].textContent = "restore"
-			// classie.add(shzCtrl, 'button--hidden');
-		}, 250);
-		// remove this class so the button content/text gets hidden
-		classie.remove(shzCtrl, 'button--listen');
-	}
-
-	/**
-	 * closes the audio player
-	 */
-	function closePlayer() {
-		// hide the player
-		classie.add(playerEl, 'player--hidden');
-		// morph the player shape into the initial button shape
-		animatePath(shzPathEl, shzEl.getAttribute('data-path-start'), 400, [0.4, 1, 0.3, 1]);
-		// show again the button and its content
-		// we are setting a timeout so that there´s a small delay (it just looks nicer)
-		setTimeout(function() {
-			classie.remove(shzCtrl, 'button--hidden');
-			classie.add(shzCtrl, 'button--start');
-		}, 50);
-	}
-
-	/**
-	 * animates an SVG Path (using Snap.svg)
-	 * 
-	 * @param {Element Node}  el - the path element
-	 * @param {string} path - the new path definition
-	 * @param {number} duration - animation time
-	 * @param {array|function} timingFunction - the animation easing. Either a Snap mina function or an array for the 4 bezier points
-	 * @param {function} callback - callback function
-	 */
-	function animatePath(el, path, duration, timingFunction, callback) {
-		var epsilon = (1000 / 60 / duration) / 4,
-			timingFunction = typeof timingFunction == 'function' ? timingFunction : bezier(timingFunction[0], timingFunction[1], timingFunction[2], timingFunction[3], epsilon);
-
-		el.stop().animate({'path' : path}, duration, timingFunction, callback);
-	}
 
 	init();
 

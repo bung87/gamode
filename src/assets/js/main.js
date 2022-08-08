@@ -65,7 +65,7 @@
 			}
 		},
 		// the main component element/wrapper
-		shzEl = document.querySelector('.component'),
+		shzEl = document.querySelector('.container'),
 		// the initial button
 		shzCtrl = shzEl.querySelector('.button--start'),
 		// the notes elements

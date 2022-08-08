@@ -1,4 +1,4 @@
-import gamode/[common, registry, registrydef, priv, srv, mouse, power, webview]
+import gamode/[common, registry, registrydef, priv, srv, mouse, power, webview, bundler]
 import winlean
 import winim/inc/winuser
 import winim/inc/windef
@@ -123,7 +123,12 @@ proc restoreBack() =
 
 when isMainModule:
 
-  let app = newWebView(currentSourcePath().splitPath.head / "assets" / "index.html", title="gamode", width=800, height=480)
+  const htmlPath = currentSourcePath().splitPath.head / "assets" / "index.html"
+  const pDir = htmlPath.parentDir
+  const html = bundleAssets(htmlPath, pDir)
+  const prefix = "<!DOCTYPE html>\n"
+  # writeFile("a.html", prefix & html)
+  let app = newWebView(prefix & html, title="gamode", width=800, height=480)
   app.bindProcs("api"):
     proc start() = startOptimization()
     proc restore() = restoreBack()

@@ -71,9 +71,9 @@ proc usLayoutOn() =
       if usIndex != -1:
         kbdLayout = lst[usIndex]
         kbdLayout = LoadKeyboardLayout(layoutUS, KLF_ACTIVATE)
-    let s = ActivateKeyboardLayout(kbdLayout, KLF_SETFORPROCESS)
-    var hWnd = GetForegroundWindow()
-    PostMessage(hWnd, WM_INPUTLANGCHANGEREQUEST, INPUTLANGCHANGE_FORWARD, HKL_NEXT)
+    # let s = ActivateKeyboardLayout(kbdLayout, KLF_SETFORPROCESS)
+    # var hWnd = GetForegroundWindow()
+    # PostMessage(hWnd, WM_INPUTLANGCHANGEREQUEST, INPUTLANGCHANGE_FORWARD, HKL_NEXT)
 
 proc noWinKeysOn() =
   let winKeys = HKEY_CURRENT_USER.openSubKey(
@@ -115,6 +115,7 @@ proc startOptimization() =
 proc restoreBack() =
   adjustPrivilege()
   gameModeOff()
+  ActivateKeyboardLayout(0,KLF_SETFORPROCESS)
   noWinKeysOff()
   disableStickyKeysOff()
   var preserve: HKEY

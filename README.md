@@ -1,5 +1,7 @@
 # gamode  
 
+![preview](preview.png)  
+
 - [x] enable system builtin game mode  
 - [x] disable <kbd>win</kbd> hotkeys  
 - [x] load us keyboard layout for CJK users  
@@ -10,7 +12,7 @@
 
 ## Development  
 
-`nim c -d:release  .\src\gamode.nim`
+`nim c -d:release --app:gui .\src\gamode.nim`
 
 assembly Manifests(require windows SDK)  
 

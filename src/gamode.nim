@@ -1,4 +1,4 @@
-import gamode/[common, registry, registrydef, priv, srv, mouse, power, webview, bundler]
+import gamode/[common, registry, registrydef, priv, srv, mouse, power, webview, bundler, monitor]
 import winlean
 import winim/inc/winuser
 import winim/inc/windef
@@ -111,6 +111,7 @@ proc startOptimization() =
   stopWuau()
   disableMouseAccelerationOn()
   maximumPerformanceOn()
+  discard changeRefreshRate(getMaxRate())
 
 proc restoreBack() =
   adjustPrivilege()
@@ -120,6 +121,7 @@ proc restoreBack() =
   disableStickyKeysOff()
   var preserve: HKEY
   PowerSetActiveScheme(preserve, Balanced.unsafeAddr)
+  discard changeRefreshRate(60)
 
 when isMainModule:
 

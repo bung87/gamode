@@ -9,6 +9,7 @@
 - [x] disable windows auto update  
 - [x] disable mouse enhance pointer precision
 - [x] switch to maximum performance power plan
+- [x] switch monitor refresh rate between 60 and max  
 
 ## Development  
 

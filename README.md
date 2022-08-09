@@ -17,3 +17,6 @@
 assembly Manifests(require windows SDK)  
 
 `mt.exe -manifest .\src\gamode.exe.manifest -outputresource:.\src\gamode.exe` 
+
+set app icon  
+`rcedit ".\src\gamode.exe" --set-icon "gamode.ico"`

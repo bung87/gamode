@@ -127,7 +127,7 @@ when isMainModule:
   const pDir = htmlPath.parentDir
   const html = bundleAssets(htmlPath, pDir)
   const prefix = "<!DOCTYPE html>\n"
-  # writeFile("a.html", prefix & html)
+  # writeFile("output.html", prefix & html)
   let app = newWebView(prefix & html, title="gamode", width=800, height=480)
   app.bindProcs("api"):
     proc start() = startOptimization()

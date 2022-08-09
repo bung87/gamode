@@ -24,3 +24,5 @@ nimbledeps/
 *.pdb
 .DS_Store
 *.out
+
+output.html

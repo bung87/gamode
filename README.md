@@ -1,4 +1,4 @@
-# gamode  <img src="logo256.png" alt="logo" width="32" height="32" />
+# <img src="logo256.png" alt="logo" width="32" height="32" style="vertical-align: bottom;" /> gamode  
 
 ![preview](preview.png)  
 

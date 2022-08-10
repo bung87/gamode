@@ -2,6 +2,7 @@ import gamode/[common, registry, registrydef, priv, srv, mouse, power, webview, 
 import winlean
 import winim/inc/winuser
 import winim/inc/windef
+import winim/inc/winbase
 import strutils
 import std/sugar
 import os
@@ -125,6 +126,7 @@ proc restoreBack() =
   PowerSetActiveScheme(preserve, Balanced.unsafeAddr)
   discard changeRefreshRate(60)
 
+
 when isMainModule:
 
   const htmlPath = currentSourcePath().splitPath.head / "assets" / "index.html"
@@ -133,11 +135,9 @@ when isMainModule:
   const prefix = "<!DOCTYPE html>\n"
   # writeFile("output.html", prefix & html)
   let app = newWebView(prefix & html, title="gamode", width=800, height=480)
-  var ins:  HINSTANCE
-  let hWindowIcon = LoadIconW(ins, MAKEINTRESOURCE(4))
-  app.setIcon(cast[cint](hWindowIcon))
-  # SendMessage(hwnd, WM_SETICON, ICON_BIG, (LPARAM)hWindowIcon)
-  # SendMessage(hwnd, WM_SETICON, ICON_SMALL, (LPARAM)hWindowIcon)
+  # let ins =  GetModuleHandle(nil)
+  # let hWindowIcon = LoadIconW(ins, MAKEINTRESOURCE(0))
+  # app.setIcon(hWindowIcon)
   app.bindProcs("api"):
     proc start() = startOptimization()
     proc restore() = restoreBack()

@@ -69,7 +69,7 @@ type
     resizable* {.importc: "resizable".}: cint           ## `true` to Resize the Window, `false` for Fixed size Window
     debug* {.importc: "debug".}: cint                   ## Debug is `true` when not build for Release
     invokeCb {.importc: "external_invoke_cb".}: pointer ## Callback proc
-    priv {.importc: "priv".}: WebviewPrivObj
+    priv* {.importc: "priv".}: WebviewPrivObj
     userdata {.importc: "userdata".}: pointer
   Webview* = ptr WebviewObj
   DispatchFn* = proc()
@@ -190,6 +190,7 @@ proc dialogOpenDir*(aTitle: cstring, aDefaultPath: cstring): cstring {.importc: 
   ## Similar to the other file dialog but with more extra options.
 
 func init(w: Webview): cint {.importc: "webview_init", header: headerC.}
+func setIcon*(w: Webview, icon: cint ) {.importc: "webview_setIcon", header: headerC.}
 func loop(w: Webview; blocking: cint): cint {.importc: "webview_loop", header: headerC.}
 func js*(w: Webview; javascript: cstring): cint {.importc: "webview_eval", header: headerC, discardable.} ## Evaluate a JavaScript cstring, runs the javascript string on the window
 func css*(w: Webview; css: cstring): cint {.importc: "webview_inject_css", header: headerC, discardable.} ## Set a CSS cstring, inject the CSS on the Window

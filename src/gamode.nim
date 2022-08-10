@@ -89,10 +89,6 @@ proc noWinKeysOff() =
   winKeys.setValue("NoWinKeys", 0'i32)
   winKeys.close()
 
-proc stopWuau() =
-  # disable windows auto update
-  stopService("wuauserv")
-
 proc disableMouseAccelerationOn() =
   # disable mouse enhance pointer precision
   discard setMouseAcceleration(false)
@@ -108,7 +104,11 @@ proc startOptimization() =
   usLayoutOn()
   disableStickyKeysOn()
   noWinKeysOn()
-  stopWuau()
+  # disable windows auto update
+  stopService("wuauserv")
+  # SysMain is a service that preloads the apps you frequently use to the RAM, thus boosting the system performance.
+  stopService("SysMain")
+  stopService("WSearch")
   disableMouseAccelerationOn()
   maximumPerformanceOn()
   discard changeRefreshRate(getMaxRate())
@@ -119,6 +119,8 @@ proc restoreBack() =
   ActivateKeyboardLayout(0,KLF_SETFORPROCESS)
   noWinKeysOff()
   disableStickyKeysOff()
+  startService("SysMain")
+  startService("WSearch")
   var preserve: HKEY
   PowerSetActiveScheme(preserve, Balanced.unsafeAddr)
   discard changeRefreshRate(60)
@@ -131,9 +133,15 @@ when isMainModule:
   const prefix = "<!DOCTYPE html>\n"
   # writeFile("output.html", prefix & html)
   let app = newWebView(prefix & html, title="gamode", width=800, height=480)
+  var ins:  HINSTANCE
+  let hWindowIcon = LoadIconW(ins, MAKEINTRESOURCE(4))
+  app.setIcon(cast[cint](hWindowIcon))
+  # SendMessage(hwnd, WM_SETICON, ICON_BIG, (LPARAM)hWindowIcon)
+  # SendMessage(hwnd, WM_SETICON, ICON_SMALL, (LPARAM)hWindowIcon)
   app.bindProcs("api"):
     proc start() = startOptimization()
     proc restore() = restoreBack()
   app.run()
+  
   app.exit()
   

@@ -1339,6 +1339,12 @@ WEBVIEW_API int webview_init(struct webview *w) {
   return 0;
 }
 
+WEBVIEW_API void webview_setIcon(struct webview *w, HICON icon) {
+  // w->priv.hwnd->hIcon = icon;
+  SendMessage( w->priv.hwnd, WM_SETICON, ICON_SMALL, (LPARAM)icon );
+  SendMessage( w->priv.hwnd, WM_SETICON, ICON_BIG, (LPARAM)icon );
+}
+
 WEBVIEW_API int webview_loop(struct webview *w, int blocking) {
   MSG msg;
   if (blocking) {

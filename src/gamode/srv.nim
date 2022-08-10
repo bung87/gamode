@@ -110,9 +110,7 @@ proc stopService*(szSvcName: string) =
   let schService = OpenService(
       schSCManager, # SCM database
     szSvcName,      # name of service
-    SERVICE_STOP or
-    SERVICE_QUERY_STATUS or
-    SERVICE_ENUMERATE_DEPENDENTS)
+    SERVICE_ALL_ACCESS)
   if schService == 0:
     echo "OpenService failed $#" % [$GetLastError()]
     CloseServiceHandle(schSCManager);
@@ -206,6 +204,128 @@ proc stopService*(szSvcName: string) =
       return
 
   # service stopped successfully
+
+proc startService*(szSvcName: string) =
+  var ssp: SERVICE_STATUS_PROCESS
+  var dwStartTime = GetTickCount()
+  var dwBytesNeeded: DWORD
+  var dwTimeout: DWORD = 30000 # 30-second time-out
+  var dwWaitTime: DWORD
+
+  # Get a handle to the SCM database.
+  # var szSvcName: LPCWSTR
+  let schSCManager = OpenSCManager(
+      nil,                 # local computer
+    nil,                   # ServicesActive database
+    SC_MANAGER_ALL_ACCESS) # full access rights
+  if schSCManager == 0:
+    echo "OpenSCManager failed $#" % [$GetLastError()]
+    # ERROR_ACCESS_DENIED
+    return
+  let schService = OpenService(
+      schSCManager, # SCM database
+    szSvcName,      # name of service
+    SERVICE_ALL_ACCESS)
+  if schService == 0:
+    echo "OpenService failed $#" % [$GetLastError()]
+    CloseServiceHandle(schSCManager);
+    return
+  proc cleanUp() =
+    CloseServiceHandle(schService)
+    CloseServiceHandle(schSCManager)
+
+  #  Make sure the service is not already stopped.
+  if not QueryServiceStatusEx(
+      schService,
+      SC_STATUS_PROCESS_INFO,
+      cast[LPBYTE](ssp.addr),
+      (DWORD)sizeof(SERVICE_STATUS_PROCESS),
+      dwBytesNeeded.addr) == TRUE:
+      echo "QueryServiceStatusEx failed $#" % [$GetLastError()]
+      cleanUp()
+      return
+  if ssp.dwCurrentState != SERVICE_STOPPED and ssp.dwCurrentState != SERVICE_STOP_PENDING:
+    cleanUp()
+    return
+
+  # If a stop is pending, wait for it.
+
+  while ssp.dwCurrentState == SERVICE_STOP_PENDING:
+
+    # Do not wait longer than the wait hint. A good interval is
+    # one-tenth of the wait hint but not less than 1 second
+    # and not more than 10 seconds.
+
+    dwWaitTime = ssp.dwWaitHint div 10
+
+    if dwWaitTime < 1000:
+      dwWaitTime = 1000
+    elif dwWaitTime > 10000:
+      dwWaitTime = 10000
+
+    Sleep(dwWaitTime)
+    if not QueryServiceStatusEx(
+        schService,
+        SC_STATUS_PROCESS_INFO,
+        cast[LPBYTE](ssp.addr),
+        (DWORD)sizeof(SERVICE_STATUS_PROCESS),
+        dwBytesNeeded.addr) == TRUE:
+    # QueryServiceStatusEx failed
+      cleanUp()
+      return
+
+    if ssp.dwCurrentState == SERVICE_STOPPED:
+    # Service stopped successfully.
+      cleanUp()
+      return
+
+    if GetTickCount() - dwStartTime > dwTimeout:
+    # Service stop timed out.
+      cleanUp()
+      return
+
+  # Start service.
+
+  if not StartService(
+          schService,
+          0,
+          nil) == TRUE:
+    echo "StartService  failed $#" % [$GetLastError()]
+    cleanUp()
+    return
+  #  Check the status until the service is no longer start pending. 
+
+  if not QueryServiceStatusEx(
+        schService,
+        SC_STATUS_PROCESS_INFO,
+        cast[LPBYTE](ssp.addr),
+        (DWORD)sizeof(SERVICE_STATUS_PROCESS),
+        dwBytesNeeded.addr) == TRUE:
+    # QueryServiceStatusEx failed
+      cleanUp()
+      return
+
+  while ssp.dwCurrentState == SERVICE_START_PENDING:
+    Sleep(ssp.dwWaitHint)
+    if not QueryServiceStatusEx(
+            schService,
+            SC_STATUS_PROCESS_INFO,
+            cast[LPBYTE](ssp.addr),
+            (DWORD)sizeof(SERVICE_STATUS_PROCESS),
+            dwBytesNeeded.addr) == TRUE:
+
+      cleanUp()
+      return
+    # echo "dwCurrentState after control", $ssp.dwCurrentState
+    if ssp.dwCurrentState == SERVICE_RUNNING:
+      break
+
+    if GetTickCount() - dwStartTime > dwTimeout:
+      # Wait timed out
+      cleanUp()
+      return
+
+  cleanUp()
 
 when isMainModule:
   adjustPrivilege()

@@ -1,5 +1,11 @@
 # <img src="logo256.png" alt="logo" width="32" height="32" style="vertical-align: bottom;" /> gamode  
 
+windows optimization tool for game.
+
+support win8 and upper.  
+
+development under win11.  
+
 ![preview](preview.png)  
 
 - [x] enable system builtin game mode  

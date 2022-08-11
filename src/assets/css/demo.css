@@ -10,9 +10,10 @@ body {
 	-webkit-font-smoothing: antialiased;
 	-moz-osx-font-smoothing: grayscale;
 }
-/* html,body{
+html,body{
 	height: 100%;
-} */
+	overflow: hidden;
+}
 
 a {
 	outline: none;
@@ -25,7 +26,7 @@ a:hover, a:focus {
 }
 
 .container {
-	height: 480px;
+	height: 442px;/* 480 - 32 */
 	/* height: 100vh; */
 	/* min-height: 665px; */
 	overflow: hidden;

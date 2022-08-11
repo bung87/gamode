@@ -228,6 +228,7 @@ proc startService*(szSvcName: string) =
     SERVICE_ALL_ACCESS)
   if schService == 0:
     echo "OpenService failed $#" % [$GetLastError()]
+    # ERROR_SERVICE_DOES_NOT_EXIST
     CloseServiceHandle(schSCManager);
     return
   proc cleanUp() =

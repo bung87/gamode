@@ -138,7 +138,16 @@ when isMainModule:
   let app = newWebView(prefix & html, title="gamode", width=800, height=480)
   # let ins =  GetModuleHandle(nil)
   # let hWindowIcon = LoadIconW(ins, MAKEINTRESOURCE(0))
-  # app.setIcon(hWindowIcon)                                         
+  # app.setIcon(hWindowIcon)
+  # let menu = CreateMenu()
+  # var item = MENUITEMINFOA()
+  # item.cbSize = sizeof(MENUITEMINFOA).UINT
+  # item.fMask = MIIM_STRING
+  # item.fType = MFT_STRING
+  # var t = "view log"
+  # item.dwTypeData = t[0].addr
+  # InsertMenuItemA(menu,1,FALSE,item.addr)
+  # app.setMenu(menu)
   app.bindProcs("api"):
     proc start() = startOptimization()
     proc restore() =  restoreBack()

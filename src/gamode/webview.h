@@ -1349,6 +1349,10 @@ WEBVIEW_API void webview_setIcon(struct webview *w, HICON icon) {
   SendMessage( w->priv.hwnd, WM_SETICON, ICON_BIG, (LPARAM)icon );
 }
 
+WEBVIEW_API void webview_setMenu(struct webview *w, HMENU hMenu) {
+  setMenu(w->priv.hwnd, hMenu);
+}
+
 WEBVIEW_API int webview_loop(struct webview *w, int blocking) {
   MSG msg;
   if (blocking) {

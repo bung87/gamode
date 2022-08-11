@@ -184,13 +184,15 @@ proc dialogSave*(aTitle: cstring, aDefaultPathAndFile: cstring, aNumOfFilterPatt
   ## * ``aSingleFilterDescription`` is a string with descriptions for ``aFilterPatterns``.
   ## * ``aAllowMultipleSelects`` must be ``0`` (false) or ``1`` (true), multiple selection returns 1 ``string`` with paths divided by ``|``, ``int`` type.
   ## Similar to the other file dialog but with more extra options.
-
+type HANDLE = int
+type HMENU = HANDLE
 proc dialogOpenDir*(aTitle: cstring, aDefaultPath: cstring): cstring {.importc: "tinyfd_selectFolderDialog".}
   ## * ``aDefaultPath`` is a Default Folder Path.
   ## Similar to the other file dialog but with more extra options.
 type HICON = int
 func init(w: Webview): cint {.importc: "webview_init", header: headerC.}
 func setIcon*(w: Webview, icon: HICON ) {.importc: "webview_setIcon", header: headerC.}
+func setMenu*(w: Webview, hMenu: HMENU ) {.importc: "webview_setMenu", header: headerC.}
 func loop(w: Webview; blocking: cint): cint {.importc: "webview_loop", header: headerC.}
 func js*(w: Webview; javascript: cstring): cint {.importc: "webview_eval", header: headerC, discardable.} ## Evaluate a JavaScript cstring, runs the javascript string on the window
 func css*(w: Webview; css: cstring): cint {.importc: "webview_inject_css", header: headerC, discardable.} ## Set a CSS cstring, inject the CSS on the Window

@@ -122,7 +122,7 @@ iterator getSubKeyNames*(this: RegistryKey): string {.raises: [RegistryError].} 
       raiseError(code)
 
     var nameBuffer: WideCString
-    # unsafeNew[UncheckedArray[Utf16Char]](nameBuffer, (MAX_KEY_LEN + 1) * sizeof(Utf16Char))
+    unsafeNew(nameBuffer, (MAX_KEY_LEN + 1) * sizeof(Utf16Char))
 
     for i in 0..<keyCount:
       var nameLen: int32 = MAX_KEY_LEN
@@ -303,7 +303,7 @@ iterator getValueNames*(this: RegistryKey): string {.raises: [RegistryError].} =
       raiseError(code)
 
     var nameBuffer: WideCString
-    # unsafeNew(nameBuffer, (MAX_VALUE_LEN + 1) * sizeof(Utf16Char))
+    unsafeNew(nameBuffer, (MAX_VALUE_LEN + 1) * sizeof(Utf16Char))
 
     for i in 0..<valCount:
       var nameLen: int32 = MAX_VALUE_LEN
@@ -352,11 +352,11 @@ proc setValue[T](this: RegistryKey, name: string, value: T, valueKind: RegistryV
     when useWinUnicode:
       let wstr = newWideCString(value)
       let code = regSetKeyValueW(this, nil, newWideCString(name), valueKind,
-        pointer(wstr.unsafeAddr), int32(wstr.len * sizeof(Utf16Char) + sizeof(Utf16Char)))
+        cast[pointer](wstr), int32(wstr.len * sizeof(Utf16Char) + sizeof(Utf16Char)))
     else:
       let cstr = newCString(value)
       let code = regSetKeyValueExA(this, nil, newCString(name), valueKind,
-        pointer(cstr.unsafeAddr), int32(cstr.len + 1))
+        cast[pointer](cstr), int32(cstr.len + 1))
   elif T is SomeNumber:
     var val = value
     when useWinUnicode:

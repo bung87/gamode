@@ -246,9 +246,12 @@ proc userLogs*(appl: TAppl, force_logs: bool = true,
     return path
 
 proc userLogs*(name: string, author: string, version: string,
-        roaming: bool = false, force_logs: bool = true, platform: string): string =
+        roaming: bool = false, force_logs: bool = true, platform: string =""): string =
     ## Gets the logs directory given the details of an application.
     ## This proc creates an application from the arguments, and uses it to call the
     ## `userLogs(TAppl)` proc.z
 
     return application(name, author, version, roaming).userLogs(force_logs, platform)
+
+when isMainModule:
+    echo userLogs("gamode", "bung", "0.1.0")

@@ -4,6 +4,9 @@ import winim/inc/winbase
 import winim/inc/winerror
 import std/[strutils]
 import priv
+import std/logging
+import os
+import logger
 
 # https://docs.microsoft.com/en-us/windows/win32/services/stopping-a-service
 # https://docs.microsoft.com/en-us/windows/win32/api/winsvc/nf-winsvc-controlservice
@@ -26,11 +29,12 @@ proc stopDependentServices(schSCManager: SC_HANDLE;
         lpDependencies, 0, dwBytesNeeded.addr, dwCount.addr) == TRUE:
     # If the Enum call succeeds, then there are no dependent
     # services, so do nothing.
-    echo "no deps"
+    info "service no dependent service"
     return true
   else:
-    if GetLastError() != ERROR_MORE_DATA:
-      echo "EnumDependentServices error"
+    let err = osLastError() 
+    if err != ERROR_MORE_DATA:
+      error( osErrorMsg(err))
       return false # Unexpected error
 
       # Allocate a buffer for the dependencies.
@@ -104,7 +108,7 @@ proc stopService*(szSvcName: string) =
     nil,                   # ServicesActive database
     SC_MANAGER_ALL_ACCESS) # full access rights
   if schSCManager == 0:
-    echo "OpenSCManager failed $#" % [$GetLastError()]
+    logOsError()
     # ERROR_ACCESS_DENIED
     return
   let schService = OpenService(
@@ -112,7 +116,8 @@ proc stopService*(szSvcName: string) =
     szSvcName,      # name of service
     SERVICE_ALL_ACCESS)
   if schService == 0:
-    echo "OpenService failed $#" % [$GetLastError()]
+    
+    logOsError()
     CloseServiceHandle(schSCManager);
     return
   proc cleanUp() =
@@ -126,7 +131,7 @@ proc stopService*(szSvcName: string) =
       cast[LPBYTE](ssp.addr),
       (DWORD)sizeof(SERVICE_STATUS_PROCESS),
       dwBytesNeeded.addr) == TRUE:
-      echo "QueryServiceStatusEx failed $#" % [$GetLastError()]
+      logOsError()
       cleanUp()
       return
   if ssp.dwCurrentState == SERVICE_STOPPED:
@@ -178,7 +183,7 @@ proc stopService*(szSvcName: string) =
           schService,
           SERVICE_CONTROL_STOP,
           cast[LPSERVICE_STATUS](ssp.addr)) == TRUE:
-    echo "ControlService  failed $#" % [$GetLastError()]
+    logOsError()
     cleanUp()
     return
   # Wait for the service to stop.
@@ -219,7 +224,7 @@ proc startService*(szSvcName: string) =
     nil,                   # ServicesActive database
     SC_MANAGER_ALL_ACCESS) # full access rights
   if schSCManager == 0:
-    echo "OpenSCManager failed $#" % [$GetLastError()]
+    logOsError()
     # ERROR_ACCESS_DENIED
     return
   let schService = OpenService(
@@ -227,7 +232,7 @@ proc startService*(szSvcName: string) =
     szSvcName,      # name of service
     SERVICE_ALL_ACCESS)
   if schService == 0:
-    echo "OpenService failed $#" % [$GetLastError()]
+    logOsError()
     # ERROR_SERVICE_DOES_NOT_EXIST
     CloseServiceHandle(schSCManager);
     return
@@ -242,7 +247,7 @@ proc startService*(szSvcName: string) =
       cast[LPBYTE](ssp.addr),
       (DWORD)sizeof(SERVICE_STATUS_PROCESS),
       dwBytesNeeded.addr) == TRUE:
-      echo "QueryServiceStatusEx failed $#" % [$GetLastError()]
+      logOsError()
       cleanUp()
       return
   if ssp.dwCurrentState != SERVICE_STOPPED and ssp.dwCurrentState != SERVICE_STOP_PENDING:
@@ -291,7 +296,7 @@ proc startService*(szSvcName: string) =
           schService,
           0,
           nil) == TRUE:
-    echo "StartService  failed $#" % [$GetLastError()]
+    logOsError()
     cleanUp()
     return
   #  Check the status until the service is no longer start pending. 

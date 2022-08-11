@@ -138,7 +138,7 @@ when isMainModule:
   let app = newWebView(prefix & html, title="gamode", width=800, height=480)
   # let ins =  GetModuleHandle(nil)
   # let hWindowIcon = LoadIconW(ins, MAKEINTRESOURCE(0))
-  # app.setIcon(hWindowIcon)
+  # app.setIcon(hWindowIcon)                                         
   app.bindProcs("api"):
     proc start() = startOptimization()
     proc restore() =  restoreBack()

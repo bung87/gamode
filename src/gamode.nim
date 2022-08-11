@@ -128,7 +128,8 @@ proc restoreBack() =
 
 
 when isMainModule:
-
+  import std/threadpool
+  {.experimental: "parallel".}
   const htmlPath = currentSourcePath().splitPath.head / "assets" / "index.html"
   const pDir = htmlPath.parentDir
   const html = bundleAssets(htmlPath, pDir)
@@ -139,8 +140,8 @@ when isMainModule:
   # let hWindowIcon = LoadIconW(ins, MAKEINTRESOURCE(0))
   # app.setIcon(hWindowIcon)
   app.bindProcs("api"):
-    proc start() = startOptimization()
-    proc restore() = restoreBack()
+    proc start() = parallel:spawn startOptimization()
+    proc restore() = parallel:spawn  restoreBack()
   app.run()
   
   app.exit()

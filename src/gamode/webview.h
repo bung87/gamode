@@ -1236,6 +1236,16 @@ static LRESULT CALLBACK wndproc(HWND hwnd, UINT uMsg, WPARAM wParam,
     }
     return TRUE;
   }
+  // case WM_COMMAND:
+  // MessageBox(w->priv.hwnd, LOWORD(wParam), L"title", MB_OK);
+  //  switch(LOWORD(wParam)) {
+  //   case "3001":
+  //     ShellExecute(NULL, "open", L"C:\\Users\\crc32\\AppData\\Roaming\\bung\\gamode\\Logs\\0.1.0\\info.log", NULL, NULL, SW_SHOW);
+  //     break;
+  //   default:
+  //     break;
+  //  }
+    
   case WM_WEBVIEW_DISPATCH: {
     webview_dispatch_fn f = (webview_dispatch_fn)wParam;
     void *arg = (void *)lParam;
@@ -1350,7 +1360,7 @@ WEBVIEW_API void webview_setIcon(struct webview *w, HICON icon) {
 }
 
 WEBVIEW_API void webview_setMenu(struct webview *w, HMENU hMenu) {
-  setMenu(w->priv.hwnd, hMenu);
+  SetMenu(w->priv.hwnd, hMenu);
 }
 
 WEBVIEW_API int webview_loop(struct webview *w, int blocking) {

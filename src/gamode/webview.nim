@@ -48,6 +48,8 @@
 ## * https://github.com/ThomasTJdev/nmqttgui
 
 import tables, strutils, macros, json, os
+import winim
+import winim/inc/winuser
 
 const headerC = currentSourcePath().parentDir() / "webview.h"
 {.passc: "-DWEBVIEW_STATIC -DWEBVIEW_IMPLEMENTATION -I" & headerC.}
@@ -61,6 +63,12 @@ elif defined(macosx):
 type
   ExternalInvokeCb* = proc (w: Webview; arg: string)  ## External CallBack Proc
   WebviewPrivObj {.importc: "struct webview_priv", header: headerC, bycopy.} = object
+    hwnd:HWND
+    browser:ptr ptr IOleObject
+    is_fullscreen:BOOL
+    saved_style:DWORD
+    saved_ex_style:DWORD
+    saved_rect:RECT
   WebviewObj* {.importc: "struct webview", header: headerC, bycopy.} = object ## WebView Type
     url* {.importc: "url".}: cstring                    ## Current URL
     title* {.importc: "title".}: cstring                ## Window Title
@@ -186,6 +194,7 @@ proc dialogSave*(aTitle: cstring, aDefaultPathAndFile: cstring, aNumOfFilterPatt
   ## Similar to the other file dialog but with more extra options.
 type HANDLE = int
 type HMENU = HANDLE
+
 proc dialogOpenDir*(aTitle: cstring, aDefaultPath: cstring): cstring {.importc: "tinyfd_selectFolderDialog".}
   ## * ``aDefaultPath`` is a Default Folder Path.
   ## Similar to the other file dialog but with more extra options.
@@ -193,7 +202,41 @@ type HICON = int
 func init(w: Webview): cint {.importc: "webview_init", header: headerC.}
 func setIcon*(w: Webview, icon: HICON ) {.importc: "webview_setIcon", header: headerC.}
 func setMenu*(w: Webview, hMenu: HMENU ) {.importc: "webview_setMenu", header: headerC.}
-func loop(w: Webview; blocking: cint): cint {.importc: "webview_loop", header: headerC.}
+proc loop(w: Webview, blocking:int):int =
+  var msg: MSG
+  if blocking == 1:
+    if (GetMessage(msg.addr, 0, 0, 0)<0): return 0
+  else:
+    if not PeekMessage(msg.addr, 0, 0, 0, PM_REMOVE) == TRUE: return 0
+  
+  case msg.message:
+  of WM_QUIT:
+    return -1
+  of WM_COMMAND:
+    discard
+  of WM_KEYDOWN:
+    discard
+  of WM_KEYUP: 
+    var r:HRESULT  = S_OK
+    var webBrowser2:IWebBrowser2
+    var browser = w.priv.browser
+    if (browser.lpVtbl.QueryInterface(cast[ptr IUnknown](browser.addr),cast[REFIID](IID_IWebBrowser2.unsafeAddr),
+                                        cast[ptr pointer](webBrowser2.addr)) == S_OK) :
+      var pIOIPAO:IOleInPlaceActiveObject
+      if (browser.lpVtbl.QueryInterface(cast[ptr IUnknown](browser.addr),cast[REFIID](IID_IOleInPlaceActiveObject.unsafeAddr),
+              cast[ptr pointer](pIOIPAO.addr)) == S_OK):
+        r = pIOIPAO.lpVtbl.TranslateAccelerator(pIOIPAO, msg.addr)
+        discard pIOIPAO.lpVtbl.Release(cast[ptr IUnknown](pIOIPAO.lpVtbl))
+      discard webBrowser2.lpVtbl.Release(cast[ptr IUnknown](webBrowser2.lpVtbl))
+    
+    if (r != S_FALSE):
+      return
+  
+  else:
+    TranslateMessage(msg.addr)
+    DispatchMessage(msg.addr)
+  
+  return 0;
 func js*(w: Webview; javascript: cstring): cint {.importc: "webview_eval", header: headerC, discardable.} ## Evaluate a JavaScript cstring, runs the javascript string on the window
 func css*(w: Webview; css: cstring): cint {.importc: "webview_inject_css", header: headerC, discardable.} ## Set a CSS cstring, inject the CSS on the Window
 func setTitle*(w: Webview; title: cstring) {.importc: "webview_set_title", header: headerC.} ## Set Title of window
@@ -315,9 +358,10 @@ template dialogOpenDir*(w: Webview; title = ""): string =
   ## Opens a dialog that requests a Directory from the user.
   w.dialog(dtOpen, 1.cint, title, "")
 
-func run*(w: Webview) {.inline.} =
+proc run*(w: Webview) {.inline.} =
   ## `run` starts the main UI loop until the user closes the window or `exit()` is called.
-  while w.loop(1) == 0: discard
+  block mainLoop:
+    while w.loop(1) == 0: discard
 
 proc run*(w: Webview, quitProc: proc () {.noconv.}, controlCProc: proc () {.noconv.}, autoClose: static[bool] = true) {.inline.} =
   ## `run` starts the main UI loop until the user closes the window. Same as `run` but with extras.
@@ -326,7 +370,8 @@ proc run*(w: Webview, quitProc: proc () {.noconv.}, controlCProc: proc () {.noco
   ## * `autoClose` set to `true` to automatically run `exit()` at exit.
   system.addQuitProc(quitProc)
   system.setControlCHook(controlCProc)
-  while w.loop(1) == 0: discard
+  block mainLoop:
+    while w.loop(1) == 0: discard
   when autoClose:
     w.webview_terminate()
     w.webview_exit()
@@ -356,141 +401,6 @@ template getLang*(_: Webview): string =
   ## Detect the Language of the user, returns a string like `"en-US"`, JavaScript side.
   "((navigator.languages && navigator.languages.length) ? navigator.languages[0] : navigator.language);"
 
-template duckDns*(_: Webview; domains: string; token: string ;ipv4 = ""; ipv6 = ""; verbose: static[bool] = false;
-  clear: static[bool] = false;  noParameters: static[bool] = false; ssl: static[bool] = true): string =
-  ## Duck DNS, Free Dynamic DNS Service, use your PC or RaspberryPi as $0 Web Hosting
-  ## * https://www.duckdns.org/why.jsp
-  assert token.len > 0 and domains.len > 0, "Token and Domains must not be empty string"
-  when noParameters:
-    assert ',' notin domains, "noParameters only allows 1 single subdomain"
-    ((when ssl: "https" else: "http") & "://www.duckdns.org/update/" & domains & "/" & token & "/" & ipv4)
-  else:
-    ((when ssl: "https" else: "http") & "://www.duckdns.org/update?domains=" & domains & "&token=" & token &
-      "&verbose=" & $verbose & "&clear=" & $clear & "&ip=" & ipv4 & "&ipv6=" & ipv6)
-
-template setAttribute*(_: Webview; id, key, val: string): string =
-  ## Sets an attribute value.
-  ## * https://developer.mozilla.org/en-US/docs/Web/API/Element/setAttribute
-  assert id.len > 0, "ID must not be empty string, must have an ID"
-  "document.querySelector('" & id & "').setAttribute('" & key & "', '" & val & "')"
-
-template toggleAttribute*(_: Webview; id, key: string): string =
-  ## Toggles an attribute value. E.g. use it on a `readonly` attribute.
-  ## * https://developer.mozilla.org/en-US/docs/Web/API/Element/toggleAttribute
-  assert id.len > 0, "ID must not be empty string, must have an ID"
-  "document.querySelector('" & id & "').toggleAttribute('" & key & "')"
-
-template removeAttribute*(_: Webview; id, key: string): string =
-  ## Remove an attribute.
-  ## * https://developer.mozilla.org/en-US/docs/Web/API/Element/removeAttribute
-  assert id.len > 0, "ID must not be empty string, must have an ID"
-  "document.querySelector('" & id & "').removeAttribute('" & key & "')"
-
-template setText*(_: Webview; id, text: string): string =
-  ## Sets the Elements `innerHtml`.
-  ## * https://developer.mozilla.org/en-US/docs/Web/API/Node/textContent
-  assert id.len > 0, "ID must not be empty string, must have an ID"
-  "document.querySelector('" & id & "').textContent = '" & text  & "'"
-
-template addText*(_: Webview; id, text: string, position = beforeEnd): string =
-  ## Appends **Plain-Text** to an Element by `id` at `position`, uses `insertAdjacentText()`, JavaScript side.
-  ## * https://developer.mozilla.org/en-US/docs/Web/API/Element/insertAdjacentText
-  assert id.len > 0, "ID must not be empty string, must have an ID"
-  "document.querySelector('" & id & "').insertAdjacentText('" & $position & "',`" & text.replace('`', ' ') & "`);"
-
-template addHtml*(_: Webview; id, html: string, position = beforeEnd): string =
-  ## Appends **HTML** to an Element by `id` at `position`, uses `insertAdjacentHTML()`, JavaScript side.
-  ## * https://developer.mozilla.org/en-US/docs/Web/API/Element/insertAdjacentHtml
-  assert id.len > 0, "ID must not be empty string, must have an ID"
-  "document.querySelector('" & id & "').insertAdjacentHTML('" & $position & "',`" & html.replace('`', ' ') & "`);"
-
-template removeHtml*(_: Webview; id: string): string =
-  ## Removes an object by `id`.
-  ## * https://developer.mozilla.org/en-US/docs/Web/API/ChildNode/remove
-  assert id.len > 0, "ID must not be empty string, must have an ID"
-  "document.querySelector('" & id & "').remove()"
-
-template addElement*(_: Webview; id, htmlTag: string, position = beforeEnd): string =
-  ## Appends **1 New HTML Element** to an Element by `id` at `position`, uses `insertAdjacentElement()`, JavaScript side.
-  ## * https://developer.mozilla.org/en-US/docs/Web/API/Element/insertAdjacentElement
-  assert id.len > 0, "ID must not be empty string, must have an ID"
-  "document.querySelector('" & id & "').insertAdjacentElement('" & $position & "',document.createElement('" & htmlTag & "'));"
-
-template setBlink*(_: Webview; id: string; iterations = 3.byte; duration = 1.byte): string =
-  ## `<blink>` is back!, use with `app.css()` https://developer.mozilla.org/en-US/docs/Web/HTML/Element/blink#Example
-  ## * https://github.com/juancarlospaco/webgui/blob/master/examples/blink/example.nim
-  assert id.len > 0, "ID must not be empty string, must have an ID"
-  ("@keyframes blink { from { opacity: 1 } to { opacity: 0 } } " &
-    id & " {animation-iteration-count:" & $iterations & ";animation-duration:" & $duration & "s;" &
-    "animation-name:blink;animation-timing-function:cubic-bezier(1.0,0,0,1.0)}")
-
-template setCursor*(_: Webview; id: string; url: string): string =
-  ## Set the mouse Cursor, use with `app.css()`, PNG, SVG, GIF, JPG, BMP, CUR, Data URI.
-  ## * https://developer.mozilla.org/en-US/docs/Web/CSS/CSS_Basic_User_Interface/Using_URL_values_for_the_cursor_property
-  ## * For Data URI see https://nim-lang.github.io/Nim/uri.html#getDataUri%2Cstring%2Cstring%2Cstring
-  ## * https://github.com/juancarlospaco/webgui/blob/master/examples/cursor/example.nim
-  assert id.len > 0, "ID must not be empty string, must have an ID"
-  id & "{ cursor: url('" & url & "'), auto !important };"
-
-template setShake*(_: Webview; id: string, effect: CSSShake): string =
-  ## Shake Effects, use with `app.css()`, `import strutils` to use.
-  ## * https://github.com/juancarlospaco/webgui/blob/master/examples/shake/example.nim
-  assert id.len > 0, "ID must not be empty string, must have an ID"
-  format($effect, id)
-
-template textareaScroll*(_: Webview; id: string, scrollIntoView: static[bool] = false, selectAll: static[bool] = false, copyToClipboard: static[bool] = false): string =
-  ## **Scroll a textarea to the bottom**, alias for `textarea.scrollTop = textarea.scrollHeight;`.
-  ## * `scrollIntoView` if `true` runs `textarea.scrollIntoView();`.
-  ## * `selectAll` if `true` runs `textarea.select();`.
-  ## * `copyToClipboard` if `true` runs `document.execCommand('copy');`, requires `selectAll = true`.
-  assert id.len > 0, "ID must not be empty string, must have an ID"
-  ((when scrollIntoView: "document.querySelector('" & id & "').scrollIntoView();" else: "") &
-    (when selectAll: "document.querySelector('" & id & "').select();" else: "") &
-    (when selectAll and copyToClipboard: "document.execCommand('copy');" else: "") &
-    "document.querySelector('" & id & "').scrollTop = document.querySelector('" & id & "').scrollHeight;")
-
-template jsWithDisable*(w: Webview; id: string; body: untyped) =
-  ## Disable 1 element, run some code, Enable same element back again. Disables at the start, Enables at the end.
-  ##
-  ## .. code-block:: nim
-  ##   app.jsWithDisable("#myButton"): ## "#myButton" becomes Disabled.
-  ##     slowFunction()                ## Code block that takes a while to finish.
-  ##                                   ## "#myButton" becomes Enabled.
-  assert id.len > 0, "ID and jsScript must not be empty string"
-  w.js("document.querySelector('" & id & "').disabled = true;document.querySelector('#" & id & "').style.cursor = 'wait';")
-  try:
-    body
-  finally:
-    w.js("document.querySelector('" & id & "').disabled = false;document.querySelector('#" & id & "').style.cursor = 'default';")
-
-template jsWithHide*(w: Webview; id: string; body: untyped) =
-  ## Hide 1 element, run some code, Show same element back again. Hides at the start, Visible at the end.
-  ##
-  ## .. code-block:: nim
-  ##   app.jsWithHide("#myButton"): ## "#myButton" becomes Hidden.
-  ##     slowFunction()             ## Code block that takes a while to finish.
-  ##                                ## "#myButton" becomes Visible.
-  assert id.len > 0, "ID and jsScript must not be empty string"
-  w.js("document.querySelector('" & id & "').style.visibility = 'hidden';document.querySelector('#" & id & "').style.cursor = 'wait';")
-  try:
-    body
-  finally:
-    w.js("document.querySelector('" & id & "').style.visibility = 'visible';document.querySelector('#" & id & "').style.cursor = 'default';")
-
-template jsWithOpacity*(w: Webview; id: string; body: untyped) =
-  ## Opacity 25% on 1 element, run some code, Opacity 100% same element back again. 25% Transparent at the start, Opaque at the end.
-  ##
-  ## .. code-block:: nim
-  ##   app.jsWithOpacity("#myButton"): ## "#myButton" becomes transparent.
-  ##     slowFunction()                ## Code block that takes a while to finish.
-  ##                                   ## "#myButton" becomes Opaque.
-  assert id.len > 0, "ID and jsScript must not be empty string"
-  w.js("document.querySelector('" & id & "').style.opacity = 0.25;document.querySelector('#" & id & "').style.cursor = 'wait';")
-  try:
-    body
-  finally:
-    w.js("document.querySelector('" & id & "').style.opacity = 1;document.querySelector('#" & id & "').style.cursor = 'default';")
-
 func currentHtmlPath*(filename: static[string] = "index.html"): string {.inline.} =
   ## Alias for `currentSourcePath().splitPath.head / "index.html"` for URL of `index.html`
   result = currentSourcePath().splitPath.head / filename
@@ -504,109 +414,6 @@ template getConfig*(filename: string; configObject; compileTime: static[bool] = 
   assert filename.len > 5 and filename[^5..^1] == ".json"
   when compileTime: {.hint: filename & " --> " & configObject.repr.}
   to((when compileTime: static(parseJson(staticRead(filename))) else: parseFile(filename)), configObject)
-
-template setFont*(_: Webview; fontName: string): string =
-  ## Use a Font from Google Fonts, returns `string` for `app.css()`, `import uri` to use.
-  ## * https://fonts.google.com
-  ## * https://github.com/juancarlospaco/webgui/blob/master/examples/font/example.nim
-  assert fontName.len > 0, "fontName must not be empty string"
-  "@import url('https://fonts.googleapis.com/css?family=" & uri.encodeUrl(fontName, true) & "&display=swap');"
-
-template setFont*(_: Webview; fontName, element: string): string =
-  ## Use a Font from Google Fonts and set it directly on HTML `element`,
-  ## returns `string` for `app.css()`, `import uri` to use.
-  ## * https://fonts.google.com
-  ## * https://github.com/juancarlospaco/webgui/blob/master/examples/font/example.nim
-  assert fontName.len > 0, "fontName must not be empty string"
-  "@import url('https://fonts.googleapis.com/css?family=" & uri.encodeUrl(fontName, true) & "&display=swap');\n" & element & "{font-family:'" & fontName & "' !important;text-rendering:optimizeLegibility};"
-
-template datePicker*(_: Webview; yearID, monthID, dayID: string; year, month, day: Positive): string =
-  ## Date Picker improvised using `<input>` and `<datalist>` HTML elements, returns `string` for `app.addHtml()`.
-  assert yearID.len > 0 and monthID.len > 0 and dayID.len > 0
-  const temp = static:
-    var gatalist = "<datalist id='dayautocomplete'>\n"
-    for i in 1..31: gatalist.add "  <option value=" & $i & " >\n"
-    gatalist.add "</datalist>"
-    gatalist
-  const temp2 = static:
-    var gatalist = "<datalist id='yearautocomplete'>\n"
-    for i in 1950..2050: gatalist.add "  <option value=" & $i & " >\n"
-    gatalist.add "</datalist>"
-    gatalist
-  """
-  <input type="tel" id='""" & yearID & "' value='" & $year & """' style="display:inline" max=9999 step=1 maxlength=4 minlength=4 size=6 placeholder="YEAR" title="Year" list="yearautocomplete">-
-  <input type="tel" id='""" & monthID & "' value='" & $month & """'style="display:inline" max=12 min=1 step=1 maxlength=2 minlength=1 size=6 placeholder="MONTH" title="Month" list="monthautocomplete">-
-  <input type="tel" id='""" & dayID & "' value='" & $day & """' style="display:inline" max=31 min=1 step=1 maxlength=2 minlength=1 size=6 placeholder="DAY" title="Day" list="dayautocomplete"><br>
-  <datalist id="monthautocomplete">
-    <option value="1"><option value="2"><option value="3"><option value="4">
-    <option value="5"><option value="6"><option value="7"><option value="8">
-    <option value="9"><option value="10"><option value="11"><option value="12">
-  </datalist> """ & temp & temp2
-
-template datetimePicker*(_: Webview; yearID, monthID, dayID, hourID, minuteID, secondID: string; year, month, day: Positive; hour = 0.Natural; minute = 0.Natural): string =
-  ## Date and Time Picker improvised using `<input>` and `<datalist>` HTML elements, returns `string` for `app.addHtml()`.
-  assert yearID.len > 0 and monthID.len > 0 and dayID.len > 0 and hourID.len > 0 and minuteID.len > 0 and secondID.len > 0
-  const temp = static:
-    var gatalist = "<datalist id='dayautocomplete'>\n"
-    for i in 1..31: gatalist.add "  <option value=" & $i & " >\n"
-    gatalist.add "</datalist>"
-    gatalist
-  const temp2 = static:
-    var gatalist = "<datalist id='60autocomplete'>\n"
-    for i in 0..60: gatalist.add "  <option value=" & $i & " >\n"
-    gatalist.add "</datalist>"
-    gatalist
-  const temp3 = static:
-    var gatalist = "<datalist id='yearautocomplete'>\n"
-    for i in 1950..2050: gatalist.add "  <option value=" & $i & " >\n"
-    gatalist.add "</datalist>"
-    gatalist
-  const temp4 = static:
-    var gatalist = "<datalist id='hourautocomplete'>\n"
-    for i in 1..24: gatalist.add "  <option value=" & $i & " >\n"
-    gatalist.add "</datalist>"
-    gatalist
-  """
-  <input type="tel" id='""" & yearID & "' value='" & $year & """' style="display:inline" max=9999 step=1 maxlength=4 minlength=4 size=6 placeholder="YEAR" title="Year" list="yearautocomplete">-
-  <input type="tel" id='""" & monthID & "' value='" & $month & """'style="display:inline" max=12 min=1 step=1 maxlength=2 minlength=1 size=6 placeholder="MONTH" title="Month" list="monthautocomplete">-
-  <input type="tel" id='""" & dayID & "' value='" & $day & """' style="display:inline" max=31 min=1 step=1 maxlength=2 minlength=1 size=6 placeholder="DAY" title="Day" list="dayautocomplete">T
-  <input type="tel" id='""" & hourID & "' value='" & $hour & """' style="display:inline" max=60 min=0 step=1 maxlength=2 minlength=1 size=6 placeholder="HOUR" title="Hour" list="hourautocomplete">:
-  <input type="tel" id='""" & minuteID & "' value='" & $minute & """'  style="display:inline" value=0 max=60 min=31 step=1 maxlength=2 minlength=1 size=6 placeholder="MINUTE" title="Minute" list="60autocomplete">:
-  <input type="tel" id='""" & secondID & """' style="display:inline" value=0 max=1 min=31 step=1 maxlength=2 minlength=1 size=6 placeholder="SECOND" title="Second" list="60autocomplete"><br>
-  <datalist id="monthautocomplete">
-    <option value="1"><option value="2"><option value="3"><option value="4">
-    <option value="5"><option value="6"><option value="7"><option value="8">
-    <option value="9"><option value="10"><option value="11"><option value="12">
-  </datalist> """ & temp & temp2 & temp3 & temp4
-
-proc getOpt*(key: static[string]; parseProc: proc; default: any; required: static[bool] = false;
-    shortOpts: static[bool] = false, prefix = '-', seps = {':', '='}): auto {.inline.} =
-  ## **Fast** simple `parseOpt` alternative, parse anything, returns value directly, copy-free.
-  ##
-  ## * `key` is the Key to parse from `commandLineParams`.
-  ## * `parseProc` is whatever `proc` parses the value of `key`, any `proc` should work.
-  ## * `default` is 1 default value to return if `key` is not found, if `required=true` is ignored.
-  ## * `required` if `true` then `key` is required and mandatory.
-  ## * `shortOpts` if `true` then `-key=value` short format is allowed too (Slower!).
-  ## * `prefix` is 1 `char` for prefix for key, `prefix='+'` then `++key=value` is parsed.
-  ## * `seps` is 1 `set[char]` for separator of `key` and value, `seps={'@'}` then `--key@value` is parsed.
-  ##
-  ## .. code-block:: nim
-  ##   echo getOpt("foo", parseInt, 0)                           ## --foo=42
-  ##   echo getOpt("bar", parseBool, false, required = true)     ## --bar:true
-  ##   echo getOpt("baz", parseHexStr, "f0f0", required = false) ## --baz:bebe
-  ##   echo getOpt("bax", readFile, "default", required = false) ## --bax:file.ext
-  ##   echo getOpt("bay", json.parseFile, %*{"key": "value"})    ## --bay:data.json
-  ##   echo getOpt("owo", parseUInt, 9, shortOpts=true, prefix='+', seps={'@'}) ## +owo@42
-  assert key.len > 0, "Key must not be empty string"
-  for x in commandLineParams():
-    if x[0] == prefix and x[1] == prefix and x[static(key.len + 2)] in seps:
-      if x[static(2..key.len + 1)] == key: return parseProc(x[static(key.len + 3..^1)])
-    when shortOpts:
-      if x[0] == prefix and x[static(key.len + 1)] in seps:
-        if x[static(1..key.len)] == key: return parseProc(x[static(key.len + 2..^1)])
-  when required: quit static("ERROR: Required command line param not found: " & key)
-  else: return default
 
 proc bindProc*[P, R](w: Webview; scope, name: string; p: (proc(param: P): R)) {.used.} =
   ## Do NOT use directly, see `bindProcs` macro.

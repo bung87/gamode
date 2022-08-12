@@ -146,7 +146,7 @@ when isMainModule:
   # item.fType = MFT_STRING
   # var t = "view log"
   # item.dwTypeData = t[0].addr
-  # InsertMenuItemA(menu,1,FALSE,item.addr)
+  # InsertMenuItemA(menu,3001,FALSE,item.addr)
   # app.setMenu(menu)
   app.bindProcs("api"):
     proc start() = startOptimization()

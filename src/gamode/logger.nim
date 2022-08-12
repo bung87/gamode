@@ -4,6 +4,8 @@ import os
 export logging
 
 let logDir = userLogs("gamode", "bung", "0.1.0")
+createDir(logDir)
+# var logFile = open(logDir / "info.log", fmWrite)
 var loggerFile = newFileLogger( logDir / "info.log")
 addHandler(loggerFile)
 

@@ -116,6 +116,10 @@
 	function initEvents() {
 		// click on the initial button
 		shzCtrl.addEventListener('click', toggle);
+		var viewLog = document.getElementById("view-log");
+		viewLog.addEventListener('click', function () {
+			window.api.viewLog();
+		});
 
 		// window resize: update window sizes and button offset
 		window.addEventListener('resize', throttle(function(ev) {

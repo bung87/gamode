@@ -106,9 +106,23 @@
 	  50%  { -ms-transform: scale(0.8); }
 	100% { -ms-transform: scale(1); }
   }
+  @keyframes zoom {
+    0%   { transform: scale(1); }
+      50%  { transform: scale(0.8); }
+    100% { transform: scale(1); }
+    }
   .circle:hover + .outer-circle, .circle:active + .outer-circle {
     -webkit-animation: zoom 1s ease-in 0s 1 both;
     -mox-animation: zoom 1s ease-in 0s 1 both;
     -o-animation: zoom 1s ease-in 0s 1 both;
+    -ms-animation: zoom 1s ease-in 0s 1 both;
     animation: zoom 1s ease-in 0s 1 both;
+  }
+  a {
+    font-size: 12px;
+  }
+  #view-log {
+    position: absolute;
+    top: 80px;
+    right: 40px;
   }

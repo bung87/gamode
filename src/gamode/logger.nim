@@ -6,7 +6,8 @@ export logging
 let logDir = userLogs("gamode", "bung", "0.1.0")
 createDir(logDir)
 # var logFile = open(logDir / "info.log", fmWrite)
-var loggerFile = newFileLogger( logDir / "info.log")
+var logPath* = logDir / "info.log"
+var loggerFile = newFileLogger( logPath)
 addHandler(loggerFile)
 
 proc logOsError*(): OSErrorCode {.inline,discardable.} = 

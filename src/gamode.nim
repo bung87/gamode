@@ -1,4 +1,4 @@
-import gamode/[common, registry, registrydef, priv, srv, mouse, power, webview, bundler, monitor]
+import gamode/[common, registry, registrydef, priv, srv, mouse, power, webview, bundler, monitor,logger]
 import winim/inc/winuser
 import winim/inc/windef
 import winim/inc/winbase
@@ -165,6 +165,7 @@ when isMainModule:
   app.bindProcs("api"):
     proc start() = chan.send("start")#startOptimization()
     proc restore() = chan.send("restore")#restoreBack()
+    proc viewLog() = discard shellExecuteW(0, newWideCString(""), newWideCString(logPath), NULL, NULL, winlean.SW_SHOWNORMAL)
   app.run()
   worker.joinThread()
   chan.close()

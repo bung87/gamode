@@ -1,11 +1,8 @@
 import gamode/[common, registry, registrydef, priv, srv, mouse, power, webview, bundler, monitor]
-import winlean
 import winim/inc/winuser
 import winim/inc/windef
 import winim/inc/winbase
-import strutils
-import std/sugar
-import os
+import std/[os,sugar,strutils,winlean]
 
 const AutoGameModeEnabled = "AutoGameModeEnabled"
 const AllowAutoGameMode = "AllowAutoGameMode"
@@ -127,6 +124,8 @@ proc restoreBack() =
   discard changeRefreshRate(60)
 
 
+
+
 when isMainModule:
   # import std/threadpool
   # {.experimental: "parallel".}
@@ -148,10 +147,26 @@ when isMainModule:
   # item.dwTypeData = t[0].addr
   # InsertMenuItemA(menu,3001,FALSE,item.addr)
   # app.setMenu(menu)
-  app.bindProcs("api"):
-    proc start() = startOptimization()
-    proc restore() =  restoreBack()
-  app.run()
+  var chan: Channel[string]
+  var worker: Thread[void]
   
+  proc work() = 
+    while true:
+      let tried = chan.tryRecv()
+      if tried.dataAvailable:
+        if tried.msg == "start":
+          startOptimization()
+        elif tried.msg == "restore":
+          restoreBack()
+
+  createThread(worker, work)
+  chan.open
+  
+  app.bindProcs("api"):
+    proc start() = chan.send("start")#startOptimization()
+    proc restore() = chan.send("restore")#restoreBack()
+  app.run()
+  worker.joinThread()
+  chan.close()
   app.exit()
   

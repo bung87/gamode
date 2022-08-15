@@ -78,6 +78,7 @@ proc noWinKeysOn() =
       "Software\\Microsoft\\Windows\\CurrentVersion\\Policies\\Explorer", true)
   let noWinKeys = winKeys.createSubKey("NoWinKeys", true)
   winKeys.setValue("NoWinKeys", 1'i32)
+  noWinKeys.close
   winKeys.close()
 
 proc noWinKeysOff() = 

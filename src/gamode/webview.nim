@@ -63,12 +63,12 @@ elif defined(macosx):
 type
   ExternalInvokeCb* = proc (w: Webview; arg: string)  ## External CallBack Proc
   WebviewPrivObj {.importc: "struct webview_priv", header: headerC, bycopy.} = object
-    hwnd:HWND
-    browser:ptr ptr IOleObject
-    is_fullscreen:BOOL
-    saved_style:DWORD
-    saved_ex_style:DWORD
-    saved_rect:RECT
+    hwnd {.importc: "hwnd".}:HWND
+    browser {.importc: "browser".}:ptr ptr IOleObject
+    is_fullscreen {.importc: "is_fullscreen".}:BOOL
+    saved_style {.importc: "saved_style".}:DWORD
+    saved_ex_style {.importc: "saved_ex_style".}:DWORD
+    saved_rect {.importc: "saved_rect".}:RECT
   WebviewObj* {.importc: "struct webview", header: headerC, bycopy.} = object ## WebView Type
     url* {.importc: "url".}: cstring                    ## Current URL
     title* {.importc: "title".}: cstring                ## Window Title
@@ -220,14 +220,14 @@ proc loop(w: Webview, blocking:int):int =
     var r:HRESULT  = S_OK
     var webBrowser2:IWebBrowser2
     var browser = w.priv.browser
-    if (browser.lpVtbl.QueryInterface(cast[ptr IUnknown](browser.addr),cast[REFIID](IID_IWebBrowser2.unsafeAddr),
+    if (browser.lpVtbl.QueryInterface(cast[ptr IUnknown](browser),cast[REFIID](IID_IWebBrowser2.unsafeAddr),
                                         cast[ptr pointer](webBrowser2.addr)) == S_OK) :
       var pIOIPAO:IOleInPlaceActiveObject
-      if (browser.lpVtbl.QueryInterface(cast[ptr IUnknown](browser.addr),cast[REFIID](IID_IOleInPlaceActiveObject.unsafeAddr),
+      if (browser.lpVtbl.QueryInterface(cast[ptr IUnknown](browser),cast[REFIID](IID_IOleInPlaceActiveObject.unsafeAddr),
               cast[ptr pointer](pIOIPAO.addr)) == S_OK):
         r = pIOIPAO.lpVtbl.TranslateAccelerator(pIOIPAO, msg.addr)
-        discard pIOIPAO.lpVtbl.Release(cast[ptr IUnknown](pIOIPAO.lpVtbl))
-      discard webBrowser2.lpVtbl.Release(cast[ptr IUnknown](webBrowser2.lpVtbl))
+        discard pIOIPAO.lpVtbl.Release(cast[ptr IUnknown](pIOIPAO))
+      discard webBrowser2.lpVtbl.Release(cast[ptr IUnknown](webBrowser2))
     
     if (r != S_FALSE):
       return

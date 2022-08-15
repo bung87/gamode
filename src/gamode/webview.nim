@@ -50,6 +50,7 @@
 import tables, strutils, macros, json, os
 import winim
 import winim/inc/winuser
+import logger
 
 const headerC = currentSourcePath().parentDir() / "webview.h"
 {.passc: "-DWEBVIEW_STATIC -DWEBVIEW_IMPLEMENTATION -I" & headerC.}
@@ -63,12 +64,12 @@ elif defined(macosx):
 type
   ExternalInvokeCb* = proc (w: Webview; arg: string)  ## External CallBack Proc
   WebviewPrivObj {.importc: "struct webview_priv", header: headerC, bycopy.} = object
-    hwnd {.importc: "hwnd".}:HWND
-    browser {.importc: "browser".}:ptr ptr IOleObject
-    is_fullscreen {.importc: "is_fullscreen".}:BOOL
-    saved_style {.importc: "saved_style".}:DWORD
-    saved_ex_style {.importc: "saved_ex_style".}:DWORD
-    saved_rect {.importc: "saved_rect".}:RECT
+    # hwnd {.importc: "hwnd".}:HWND
+    # browser {.importc: "browser".}:ptr ptr IOleObject
+    # is_fullscreen {.importc: "is_fullscreen".}:BOOL
+    # saved_style {.importc: "saved_style".}:DWORD
+    # saved_ex_style {.importc: "saved_ex_style".}:DWORD
+    # saved_rect {.importc: "saved_rect".}:RECT
   WebviewObj* {.importc: "struct webview", header: headerC, bycopy.} = object ## WebView Type
     url* {.importc: "url".}: cstring                    ## Current URL
     title* {.importc: "title".}: cstring                ## Window Title
@@ -202,41 +203,40 @@ type HICON = int
 func init(w: Webview): cint {.importc: "webview_init", header: headerC.}
 func setIcon*(w: Webview, icon: HICON ) {.importc: "webview_setIcon", header: headerC.}
 func setMenu*(w: Webview, hMenu: HMENU ) {.importc: "webview_setMenu", header: headerC.}
-proc loop(w: Webview, blocking:int):int =
-  var msg: MSG
-  if blocking == 1:
-    if (GetMessage(msg.addr, 0, 0, 0)<0): return 0
-  else:
-    if not PeekMessage(msg.addr, 0, 0, 0, PM_REMOVE) == TRUE: return 0
+func loop(w: Webview; blocking: cint): cint {.importc: "webview_loop", header: headerC.}
+# proc loop(w: Webview, blocking:int):int =
+#   var msg: MSG
+#   if blocking == 1:
+#     if (GetMessage(msg.addr, 0, 0, 0)<0): return 0
+#   else:
+#     if not PeekMessage(msg.addr, 0, 0, 0, PM_REMOVE) == TRUE: return 0
   
-  case msg.message:
-  of WM_QUIT:
-    return -1
-  of WM_COMMAND:
-    discard
-  of WM_KEYDOWN:
-    discard
-  of WM_KEYUP: 
-    var r:HRESULT  = S_OK
-    var webBrowser2:IWebBrowser2
-    var browser = w.priv.browser
-    if (browser.lpVtbl.QueryInterface(cast[ptr IUnknown](browser),cast[REFIID](IID_IWebBrowser2.unsafeAddr),
-                                        cast[ptr pointer](webBrowser2.addr)) == S_OK) :
-      var pIOIPAO:IOleInPlaceActiveObject
-      if (browser.lpVtbl.QueryInterface(cast[ptr IUnknown](browser),cast[REFIID](IID_IOleInPlaceActiveObject.unsafeAddr),
-              cast[ptr pointer](pIOIPAO.addr)) == S_OK):
-        r = pIOIPAO.lpVtbl.TranslateAccelerator(pIOIPAO, msg.addr)
-        discard pIOIPAO.lpVtbl.Release(cast[ptr IUnknown](pIOIPAO))
-      discard webBrowser2.lpVtbl.Release(cast[ptr IUnknown](webBrowser2))
+#   case msg.message:
+#   of WM_QUIT:
+#     return -1
+#   of WM_COMMAND,
+#    WM_KEYDOWN,
+#    WM_KEYUP: 
+#     var r:HRESULT = S_OK
+#     var webBrowser2: IWebBrowser2
+#     var browser = w.priv.browser
+#     if (browser.lpVtbl.QueryInterface(cast[ptr IUnknown](browser),cast[REFIID](IID_IWebBrowser2.unsafeAddr),
+#                                         cast[ptr pointer](webBrowser2.addr)) == S_OK) :
+#       var pIOIPAO:IOleInPlaceActiveObject
+#       if (browser.lpVtbl.QueryInterface(cast[ptr IUnknown](browser),cast[REFIID](IID_IOleInPlaceActiveObject.unsafeAddr),
+#               cast[ptr pointer](pIOIPAO.addr)) == S_OK):
+#         r = pIOIPAO.lpVtbl.TranslateAccelerator(pIOIPAO, msg.addr)
+#         discard pIOIPAO.lpVtbl.Release(cast[ptr IUnknown](pIOIPAO))
+#       discard webBrowser2.lpVtbl.Release(cast[ptr IUnknown](webBrowser2))
     
-    if (r != S_FALSE):
-      return
+#     if (r != S_FALSE):
+#       return
   
-  else:
-    TranslateMessage(msg.addr)
-    DispatchMessage(msg.addr)
+#   else:
+#     TranslateMessage(msg.addr)
+#     DispatchMessage(msg.addr)
   
-  return 0;
+#   return 0;
 func js*(w: Webview; javascript: cstring): cint {.importc: "webview_eval", header: headerC, discardable.} ## Evaluate a JavaScript cstring, runs the javascript string on the window
 func css*(w: Webview; css: cstring): cint {.importc: "webview_inject_css", header: headerC, discardable.} ## Set a CSS cstring, inject the CSS on the Window
 func setTitle*(w: Webview; title: cstring) {.importc: "webview_set_title", header: headerC.} ## Set Title of window

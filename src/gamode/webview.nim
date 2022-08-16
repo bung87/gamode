@@ -217,6 +217,8 @@ proc loop(w: Webview, blocking:int):int =
   of WM_COMMAND,
    WM_KEYDOWN,
    WM_KEYUP: 
+    if (msg.wParam == VK_F5):
+      return 0
     var r:HRESULT = S_OK
     var webBrowser2:ptr IWebBrowser2
     var browser = w.priv.browser

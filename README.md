@@ -1,4 +1,4 @@
-# <img src="logo256.png" alt="logo" width="32" height="32" style="vertical-align: bottom;" /> gamode  
+# <img src="logo256.png" alt="logo" width="32" height="32" style="vertical-align: bottom;" /> gamode  ![Build Status](https://github.com/bung87/gamode/workflows/build/badge.svg) 
 
 windows optimization tool for game.
 

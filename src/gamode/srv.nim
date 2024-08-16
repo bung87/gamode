@@ -2,8 +2,6 @@ import common
 import winim/inc/winsvc
 import winim/inc/winbase
 import winim/inc/winerror
-import std/[strutils]
-import priv
 import std/logging
 import os
 import logger

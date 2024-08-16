@@ -1,7 +1,6 @@
 import gamode/[common, registry, registrydef, priv, srv, mouse, power, webview, bundler, monitor,logger]
 import winim/inc/winuser
 import winim/inc/windef
-import winim/inc/winbase
 import std/[os,sugar,strutils,winlean]
 
 const AutoGameModeEnabled = "AutoGameModeEnabled"

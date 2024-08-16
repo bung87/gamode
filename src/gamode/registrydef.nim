@@ -1,7 +1,5 @@
 import winlean
 
-{.deadCodeElim: on.}
-
 const
   REG_LIB = "Advapi32"
 

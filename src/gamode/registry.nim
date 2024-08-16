@@ -1,7 +1,7 @@
 import registrydef, strutils, typetraits, winlean
 
 type
-  RegistryError* = object of Exception
+  RegistryError* = object of CatchableError
 
 const
   FORMAT_MESSAGE_ALLOCATE_BUFFER = 0x100
@@ -87,7 +87,7 @@ iterator getSubKeyNames*(this: RegistryKey): string {.raises: [RegistryError].} 
     nameBuffer[nameLen] = Utf16Char(0)
     yield $nameBuffer
 
-proc tryGetValue*[T](this: RegistryKey, name: string, value: var T): bool {.raises: [RegistryError, ValueError, OverflowError].} =
+proc tryGetValue*[T](this: RegistryKey, name: string, value: var T): bool {.raises: [RegistryError, ValueError].} =
   var kind: RegistryValueType
   var size: int32 = 0
   let code = regQueryValueExW(this, newWideCString(name), nil, kind.addr, nil, size.addr)
@@ -174,7 +174,7 @@ proc tryGetValue*[T](this: RegistryKey, name: string, value: var T): bool {.rais
   else:
     raise newException(RegistryError, "The registry value is of type " & $kind & ", which is not supported")
 
-proc getValue*[T](this: RegistryKey, name: string, default: T): T {.raises: [RegistryError, ValueError, OverflowError].} =
+proc getValue*[T](this: RegistryKey, name: string, default: T): T {.raises: [RegistryError, ValueError].} =
   if not this.tryGetValue(name, result):
     result = default
 

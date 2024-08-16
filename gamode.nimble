@@ -1,6 +1,6 @@
 # Package
 
-version       = "0.1.0"
+version       = "0.2.0"
 author        = "bung87"
 description   = "windows optimization tool for game"
 license       = "MIT"
@@ -13,6 +13,6 @@ installExt = @["nim", "js","css","html"]
 
 requires "nim >= 1.6.6"
 requires "winim"
-requires "crowngui"
+requires "crowngui >= 0.2.17"
 when NimMajor >= 2:
   requires "htmlparser"

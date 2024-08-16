@@ -128,8 +128,8 @@ proc restoreBack() =
 
 when isMainModule:
   import os, strutils
-  import gamode/webview
-  # import crowngui
+  # import gamode/webview
+  import crowngui
   
   # import std/threadpool
   # {.experimental: "parallel".}
@@ -139,9 +139,9 @@ when isMainModule:
   const html = bundleAssets(htmlPath, pDir)
 
   # const coded = getDataUri(prefix & html, "text/html")
-  # let app = newApplication(prefix & html)
+  let app = newApplication(prefix & html)
 
-  let app = newWebView(prefix & html, title="gamode", width=800, height=480)
+  # let app = newWebView(prefix & html, title="gamode", width=800, height=480)
   # let ins =  GetModuleHandle(nil)
   # let hWindowIcon = LoadIconW(ins, MAKEINTRESOURCE(0))
   # app.setIcon(hWindowIcon)
@@ -177,6 +177,6 @@ when isMainModule:
   
   worker.joinThread()
   chan.close()
-  app.exit()
-  # app.destroy()
+  # app.exit()
+  app.destroy()
   

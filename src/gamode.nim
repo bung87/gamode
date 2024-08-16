@@ -1,4 +1,4 @@
-import gamode/[common, registry, registrydef, priv, srv, mouse, power, webview, bundler, monitor,logger]
+import gamode/[common, registry, registrydef, priv, srv, mouse, power, bundler, monitor,logger]
 import winim/inc/winuser
 import winim/inc/windef
 import std/[os,sugar,strutils,winlean]
@@ -127,13 +127,20 @@ proc restoreBack() =
 
 
 when isMainModule:
+  import os, strutils
+  import gamode/webview
+  # import crowngui
+  
   # import std/threadpool
   # {.experimental: "parallel".}
   const htmlPath = currentSourcePath().splitPath.head / "assets" / "index.html"
   const pDir = htmlPath.parentDir
+  const prefix = "<!DOCTYPE html>"
   const html = bundleAssets(htmlPath, pDir)
-  const prefix = "<!DOCTYPE html>\n"
-  # writeFile("output.html", prefix & html)
+
+  # const coded = getDataUri(prefix & html, "text/html")
+  # let app = newApplication(prefix & html)
+
   let app = newWebView(prefix & html, title="gamode", width=800, height=480)
   # let ins =  GetModuleHandle(nil)
   # let hWindowIcon = LoadIconW(ins, MAKEINTRESOURCE(0))
@@ -167,7 +174,9 @@ when isMainModule:
     proc restore() = chan.send("restore")#restoreBack()
     proc viewLog() = discard shellExecuteW(0, newWideCString(""), newWideCString(logPath), NULL, NULL, winlean.SW_SHOWNORMAL)
   app.run()
+  
   worker.joinThread()
   chan.close()
   app.exit()
+  # app.destroy()
   

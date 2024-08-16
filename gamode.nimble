@@ -13,5 +13,4 @@ installExt = @["nim", "js","css","html"]
 
 requires "nim >= 1.6.6"
 requires "winim"
-requires "background"
 

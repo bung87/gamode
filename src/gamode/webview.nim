@@ -107,8 +107,8 @@ type
 const
   dataUriHtmlHeader* = "data:text/html,"  ## Data URI for HTML UTF-8 header string
   fileLocalHeader* = "file:///"  ## Use Local File as URL.
-  cssDark = staticRead"dark.css".strip.unindent.cstring
-  cssLight = staticRead"light.css".strip.unindent.cstring
+  # cssDark = staticRead"dark.css".strip.unindent.cstring
+  # cssLight = staticRead"light.css".strip.unindent.cstring
   imageLazy = """
     <img class="$5" id="$2" alt="$6" data-src="$1" src="" lazyload="on" onclick="this.src=this.dataset.src" onmouseover="this.src=this.dataset.src" width="$3" heigth="$4"/>
     <script>
@@ -383,10 +383,10 @@ func exit*(w: Webview) {.inline.} =
   w.webview_terminate()
   w.webview_exit()
 
-template setTheme*(w: Webview; dark: bool) =
-  ## Set Dark Theme or Light Theme on-the-fly, `dark = true` for Dark, `dark = false` for Light.
-  ## * If `--light-theme` on `commandLineParams()` then it will use Light Theme automatically.
-  discard w.css(if dark: cssDark else: cssLight)
+# template setTheme*(w: Webview; dark: bool) =
+#   ## Set Dark Theme or Light Theme on-the-fly, `dark = true` for Dark, `dark = false` for Light.
+#   ## * If `--light-theme` on `commandLineParams()` then it will use Light Theme automatically.
+#   discard w.css(if dark: cssDark else: cssLight)
 
 template imgLazyLoad*(_: Webview; src, id: string, width = "", heigth = "", class = "",  alt = ""): string =
   ## HTML Image LazyLoad (Must have an ID!).
